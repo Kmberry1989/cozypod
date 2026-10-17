@@ -153,6 +153,12 @@
         </div>
     </div>
 
+    <div class="bg-slate-950 border-b border-slate-800/60 px-3 py-1 flex items-center gap-2 z-10 shrink-0">
+        <span id="xpLevelLabel" class="text-[10px] font-bold text-violet-300 font-display whitespace-nowrap">Lv 1</span>
+        <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="xpBarFill" class="h-full bg-gradient-to-r from-violet-500 to-fuchsia-400 rounded-full transition-all" style="width:0%"></div></div>
+        <span id="xpTextLabel" class="text-[10px] text-slate-400 font-bold whitespace-nowrap">0/100</span>
+    </div>
+
     <main class="flex-1 relative overflow-hidden flex flex-col">
 
         <!-- VIEW 1: LIVE INTERACTIVE LOUNGE -->
@@ -367,8 +373,8 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-sm w-5 text-center">🏆</span>
-                    <div class="flex items-center gap-1.5 text-xs text-amber-300 font-bold px-2 py-1 bg-amber-500/10 rounded-xl border border-amber-500/20">
-                        <span>🏆 Squad Trophy Shelf: Unlocked Crowns & Rare Hats</span>
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 rounded-xl border border-amber-500/20 min-h-[1.9rem] flex-1">
+                        <div id="trophyShelfRow" class="flex flex-wrap items-center gap-1 text-sm"></div>
                     </div>
                 </div>
             </div>
@@ -387,6 +393,16 @@
         </section>
 
     </main>
+
+    <!-- REWARD MODAL: level-up + daily -->
+    <div id="rewardModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm">
+        <div class="animate-pop bg-slate-900 border border-violet-500/40 rounded-3xl p-6 w-full max-w-xs text-center shadow-2xl">
+            <div id="rewardEmoji" class="text-5xl mb-2">🎉</div>
+            <div id="rewardTitle" class="font-display font-bold text-lg text-white mb-1">Level Up!</div>
+            <div id="rewardDetail" class="text-xs text-slate-300 mb-4">+40 coins</div>
+            <button onclick="closeRewardModal()" class="btn-game px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold">Claim</button>
+        </div>
+    </div>
 
     <!-- Bottom Navigation Bar -->
     <nav class="grid grid-cols-3 gap-1.5 px-3 py-1.5 bg-slate-950 border-t border-slate-800/90 z-20 shrink-0">
@@ -851,17 +867,17 @@
         window.toggleWeather = function() {
             const types = ['none', 'rain', 'snow', 'stars'];
             roomWeather = types[(types.indexOf(roomWeather) + 1) % types.length];
-            playTone('pop');
+            playTone('pop'); persistAll();
         };
 
         window.toggleGravity = function() {
             roomGravity = roomGravity === 'normal' ? 'low' : 'normal';
-            playTone('win');
+            playTone('win'); persistAll();
         };
 
         window.spawnGachaCapsule = function() {
             if (arcadeCoins < 20) { playTone('pop'); return; }
-            arcadeCoins -= 20;
+            arcadeCoins -= 20; persistCoins();
             document.getElementById('coinCountVal').textContent = arcadeCoins;
             playTone('win');
             throwFunItem('confetti');
@@ -940,7 +956,7 @@
             myPlayer.updatedAt = Date.now();
             initWardrobeUI();
             renderRosterBar();
-            syncMyPlayerToCloud();
+            syncMyPlayerToCloud(); persistAll();
         };
 
         window.randomizeAvatar = function() {
@@ -950,7 +966,7 @@
             playTone('win');
             initWardrobeUI();
             renderRosterBar();
-            syncMyPlayerToCloud();
+            syncMyPlayerToCloud(); persistAll();
         };
 
         function getRoomPlayers() {
@@ -986,14 +1002,14 @@
             myPlayer.targetX = Math.max(0.1, Math.min(0.9, (e.clientX - rect.left) / rect.width));
             myPlayer.targetY = Math.max(0.22, Math.min(0.86, (e.clientY - rect.top) / rect.height));
             playTone('pop');
-            syncMyPlayerToCloud();
+            syncMyPlayerToCloud(); persistAll();
         });
 
         window.triggerEmote = function(emoji) {
             myPlayer.emote = emoji;
             myPlayer.emoteExpires = Date.now() + 4000;
             playTone('pop');
-            syncMyPlayerToCloud();
+            syncMyPlayerToCloud(); persistAll();
         };
 
         window.throwFunItem = function(type) {
@@ -1080,7 +1096,7 @@
                 const idx = r * 7 + col;
                 if (sharedGameState.c4Board[idx] === null) {
                     sharedGameState.c4Board[idx] = 0;
-                    playTone('disc');
+                    playTone('disc'); awardXP(2);
                     renderConnect4Board();
                     syncGameStateToCloud();
                     break;
@@ -1111,10 +1127,11 @@
             if (idx === q.correct) {
                 playTone('win');
                 sharedGameState.triviaScore += 100;
-                arcadeCoins += 10;
+                arcadeCoins += 10; persistCoins();
                 document.getElementById('coinCountVal').textContent = arcadeCoins;
+                awardXP(20);
             } else {
-                playTone('pop');
+                playTone('pop'); awardXP(2);
             }
             nextTriviaQuestion();
         };
@@ -1129,11 +1146,11 @@
         };
 
         window.tapMelodyPad = function(idx) {
-            playTone('pop', 300 + idx * 120);
+            playTone('pop', 300 + idx * 120); awardXP(1);
         };
 
         window.triggerReflexBuzzer = function() {
-            playTone('win');
+            playTone('win'); awardXP(5);
             document.getElementById('reflexResultText').textContent = `${myPlayer.name} buzzed first! (+50 pts)`;
         };
 
@@ -1155,7 +1172,7 @@
             chatMessages.push({ sender: myPlayer.name, text: msg });
             renderChatHistory();
             playVocalChatBlips(msg, myPlayer.name);
-            syncMyPlayerToCloud();
+            syncMyPlayerToCloud(); persistAll(); awardXP(1);
         };
 
         window.switchTab = function(tabName) {
@@ -1177,6 +1194,7 @@
             const room = document.getElementById('splashRoomInput').value.trim().toUpperCase();
             if (name) myPlayer.name = name;
             if (room) currentRoomCode = room;
+            persistAll();
             document.getElementById('headerRoomText').textContent = currentRoomCode;
             document.getElementById('splashScreen').classList.add('hidden');
             playTone('win');
@@ -1214,7 +1232,7 @@
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
                 else await signInAnonymously(auth);
                 isFirebaseReady = true;
-                syncMyPlayerToCloud();
+                syncMyPlayerToCloud(); persistAll();
             } catch(e) {}
         }
 
@@ -1228,6 +1246,112 @@
             try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_games', `room_${currentRoomCode}`), { ...sharedGameState }); } catch(e){}
         }
 
+
+        // ===== COZYPOD LOCAL SAVE · XP · DAILY REWARDS =====
+        const SAVE_KEY = 'cozypod_save_v1';
+        let saveData = null;
+        let playerXP = 0, playerLevel = 1;
+        function loadSaveData() {
+            try { saveData = JSON.parse(localStorage.getItem(SAVE_KEY)) || null; } catch (e) { saveData = null; }
+            if (!saveData || typeof saveData !== 'object') saveData = null;
+            if (!saveData) {
+                saveData = {
+                    uid: 'local-' + Math.random().toString(36).substring(2, 8),
+                    player: null, env: { weather: 'none', gravity: 'normal' },
+                    xp: 0, level: 1, coins: 50, trophies: [],
+                    daily: { lastClaim: '', streak: 0 }
+                };
+            }
+            if (!saveData.uid) saveData.uid = 'local-' + Math.random().toString(36).substring(2, 8);
+            if (!saveData.env) saveData.env = { weather: 'none', gravity: 'normal' };
+            if (!Array.isArray(saveData.trophies)) saveData.trophies = [];
+            if (!saveData.daily) saveData.daily = { lastClaim: '', streak: 0 };
+            return saveData;
+        }
+        function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveData)); } catch (e) {} }
+        function persistAll() {
+            saveData.player = { name: myPlayer.name, status: myPlayer.status, skinColor: myPlayer.skinColor, outfitColor: myPlayer.outfitColor, hat: myPlayer.hat, eyes: myPlayer.eyes };
+            saveData.env = { weather: roomWeather, gravity: roomGravity };
+            saveData.coins = arcadeCoins; saveData.xp = playerXP; saveData.level = playerLevel;
+            writeSave();
+        }
+        function persistCoins() { saveData.coins = arcadeCoins; writeSave(); }
+        function applySaveData() {
+            loadSaveData();
+            myUserId = saveData.uid; myPlayer.id = myUserId;
+            if (saveData.player) {
+                ['name','status','skinColor','outfitColor','hat','eyes'].forEach(function(f) {
+                    if (saveData.player[f] !== undefined && saveData.player[f] !== null) myPlayer[f] = saveData.player[f];
+                });
+            }
+            playersMap = {}; playersMap[myUserId] = myPlayer;
+            roomWeather = saveData.env.weather || 'none';
+            roomGravity = saveData.env.gravity || 'normal';
+            arcadeCoins = (typeof saveData.coins === 'number') ? saveData.coins : 50;
+            playerXP = saveData.xp || 0; playerLevel = saveData.level || 1;
+            writeSave();
+        }
+        function xpForLevel(lv) { return lv * 100; }
+        function renderXPBar() {
+            var need = xpForLevel(playerLevel);
+            document.getElementById('xpLevelLabel').textContent = 'Lv ' + playerLevel;
+            document.getElementById('xpBarFill').style.width = Math.min(100, playerXP / need * 100) + '%';
+            document.getElementById('xpTextLabel').textContent = playerXP + '/' + need;
+        }
+        function renderTrophyShelf() {
+            var row = document.getElementById('trophyShelfRow'); if (!row) return;
+            var icons = (saveData.trophies || []).map(function(t) { return t.t === 'weekly' ? '⭐' : '🏆'; });
+            row.innerHTML = icons.length
+                ? icons.map(function(e) { return '<span>' + e + '</span>'; }).join('')
+                : '<span class="text-[10px] text-slate-500">Play to earn</span>';
+        }
+        function showRewardModal(emoji, title, detail) {
+            document.getElementById('rewardEmoji').textContent = emoji;
+            document.getElementById('rewardTitle').textContent = title;
+            document.getElementById('rewardDetail').textContent = detail;
+            document.getElementById('rewardModal').classList.remove('hidden');
+        }
+        window.closeRewardModal = function() {
+            document.getElementById('rewardModal').classList.add('hidden');
+            playTone('pop');
+        };
+        function awardXP(n) {
+            playerXP += n;
+            var leveled = false, lastBonus = 0;
+            while (playerXP >= xpForLevel(playerLevel)) {
+                playerXP -= xpForLevel(playerLevel);
+                playerLevel++;
+                lastBonus = 20 * playerLevel;
+                arcadeCoins += lastBonus;
+                saveData.trophies.push({ t: 'level', level: playerLevel });
+                leveled = true;
+            }
+            persistAll();
+            document.getElementById('coinCountVal').textContent = arcadeCoins;
+            renderXPBar(); renderTrophyShelf();
+            if (leveled) { playTone('win'); showRewardModal('🎉', 'Level ' + playerLevel + '!', '+' + lastBonus + ' coins'); }
+        }
+        function dayStr(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        function checkDailyReward() {
+            var today = dayStr(new Date());
+            if (saveData.daily.lastClaim === today) return;
+            var yesterday = dayStr(new Date(Date.now() - 864e5));
+            saveData.daily.streak = (saveData.daily.lastClaim === yesterday) ? saveData.daily.streak + 1 : 1;
+            var streak = saveData.daily.streak;
+            var weekly = (streak % 7 === 0);
+            var coins = weekly ? 150 : 15 + 5 * streak;
+            var xp = weekly ? 100 : 25;
+            saveData.daily.lastClaim = today;
+            arcadeCoins += coins;
+            if (weekly) saveData.trophies.push({ t: 'weekly', streak: streak });
+            persistAll();
+            document.getElementById('coinCountVal').textContent = arcadeCoins;
+            awardXP(xp);
+            renderTrophyShelf();
+            showRewardModal(weekly ? '⭐' : '🎁', weekly ? 'Weekly Bonus!' : 'Day ' + streak, '+' + coins + ' coins · +' + xp + ' XP');
+        }
+        applySaveData();
+
         window.onload = function() {
             document.getElementById('headerRoomText').textContent = currentRoomCode;
             document.getElementById('splashRoomInput').value = currentRoomCode;
@@ -1237,6 +1361,11 @@
             renderRosterBar();
             renderAllMiniGamesUI();
             requestAnimationFrame(renderLobbyLoop);
+            document.getElementById('coinCountVal').textContent = arcadeCoins;
+            document.getElementById('splashNameInput').value = myPlayer.name;
+            renderXPBar();
+            renderTrophyShelf();
+            checkDailyReward();
             initFirebaseMultiplayer();
         };
     </script>
