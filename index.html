@@ -360,11 +360,11 @@
                     <div id="colorPickerRow" class="flex flex-1 justify-between gap-1"></div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span class="text-sm w-5 text-center">👕</span>
+                    <span class="text-sm w-5 text-center">🌱</span>
                     <div id="outfitPickerRow" class="flex flex-1 justify-between gap-1"></div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span class="text-sm w-5 text-center">🎩</span>
+                    <span class="text-sm w-5 text-center">😊</span>
                     <div id="hatPickerRow" class="grid grid-cols-8 gap-1 flex-1"></div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -820,6 +820,7 @@
 
         let myPlayer = {
             id: myUserId, roomCode: currentRoomCode, name: urlParams.get('name') || 'Alex', status: '✨',
+            species: 'podling', features: { body: 'mint', sprout: 'leaf', face: 'happy' },
             skinColor: SKIN_COLORS[0], outfitColor: OUTFIT_COLORS[0], hat: 'headphones', eyes: 'shades',
             x: 0.45, y: 0.58, targetX: 0.45, targetY: 0.58, chatText: '', chatExpires: 0,
             emote: '👋', emoteExpires: Date.now() + 3000, dancing: false, isBot: false, updatedAt: Date.now()
@@ -915,14 +916,66 @@
             renderRosterBar();
         }
 
+        const PODLING_BODIES = [
+            { id: 'mint',  color: '#9fe8ab', dark: '#6fbf7d', pattern: 'plain' },
+            { id: 'teal',  color: '#5ec8b8', dark: '#3a9a8a', pattern: 'stripes' },
+            { id: 'lime',  color: '#cde86d', dark: '#a3c44a', pattern: 'spots' },
+            { id: 'lilac', color: '#c9b8f0', dark: '#9a82d6', pattern: 'plain' }
+        ];
+        const PODLING_SPROUTS = [
+            { id: 'leaf', icon: '🌿' }, { id: 'flower', icon: '🌸' },
+            { id: 'mushroom', icon: '🍄' }, { id: 'none', icon: '\u2716\uFE0F' }
+        ];
+        const PODLING_FACES = [
+            { id: 'happy', icon: '😊' }, { id: 'sleepy', icon: '😴' }, { id: 'starry', icon: '🤩' }
+        ];
+        var __podClipN = 0;
+        function podlingBodyOf(p) {
+            var f = (p && p.features) || {};
+            return PODLING_BODIES.find(function(b) { return b.id === f.body; }) || PODLING_BODIES[0];
+        }
+        function buildPodlingSVG(p, size) {
+            size = size || 64;
+            var f = (p && p.features) || {};
+            var body = podlingBodyOf(p);
+            var sproutId = f.sprout || 'leaf';
+            var faceId = f.face || 'happy';
+            var clipId = 'podclip' + (++__podClipN);
+            var bodyPath = 'M 32 12 C 44 12 53 24 53 38 C 53 50 43 58 32 58 C 21 58 11 50 11 38 C 11 24 20 12 32 12 Z';
+            var pattern = '';
+            if (body.pattern === 'stripes') {
+                pattern = '<path d="M 8 30 Q 32 40 56 30" stroke="' + body.dark + '" stroke-width="6" fill="none"/>' +
+                          '<path d="M 8 42 Q 32 52 56 42" stroke="' + body.dark + '" stroke-width="6" fill="none"/>';
+            } else if (body.pattern === 'spots') {
+                pattern = '<circle cx="22" cy="30" r="4.5" fill="' + body.dark + '" opacity="0.6"/>' +
+                          '<circle cx="42" cy="34" r="5.5" fill="' + body.dark + '" opacity="0.6"/>' +
+                          '<circle cx="30" cy="47" r="3.5" fill="' + body.dark + '" opacity="0.6"/>';
+            }
+            var sprout = '';
+            if (sproutId === 'leaf') sprout = '<path d="M32 13 L32 5" stroke="#3f9e57" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="38" cy="6" rx="6" ry="3.4" fill="#62c774" transform="rotate(-24 38 6)"/>';
+            else if (sproutId === 'flower') sprout = '<circle cx="32" cy="3.5" r="3" fill="#f9a8d4"/><circle cx="27.5" cy="6.5" r="3" fill="#f9a8d4"/><circle cx="36.5" cy="6.5" r="3" fill="#f9a8d4"/><circle cx="29.5" cy="10.5" r="3" fill="#f9a8d4"/><circle cx="34.5" cy="10.5" r="3" fill="#f9a8d4"/><circle cx="32" cy="7" r="2.4" fill="#fde047"/>';
+            else if (sproutId === 'mushroom') sprout = '<rect x="30" y="8" width="4" height="6" rx="2" fill="#f5f0e6"/><path d="M23 9 Q32 0 41 9 Q32 12 23 9 Z" fill="#ef4444"/><circle cx="28" cy="6.5" r="1.4" fill="#fff"/><circle cx="35" cy="5.5" r="1.1" fill="#fff"/>';
+            var face = buildEyesSVG(faceId);
+            return '<svg viewBox="0 0 64 64" width="' + size + '" height="' + size + '" xmlns="http://www.w3.org/2000/svg">' +
+                '<defs><clipPath id="' + clipId + '"><path d="' + bodyPath + '"/></clipPath></defs>' +
+                '<ellipse cx="32" cy="59" rx="16" ry="3.5" fill="rgba(0,0,0,0.35)"/>' +
+                '<ellipse cx="9" cy="44" rx="5" ry="7" fill="' + body.color + '" stroke="#0f172a" stroke-width="2"/>' +
+                '<ellipse cx="55" cy="44" rx="5" ry="7" fill="' + body.color + '" stroke="#0f172a" stroke-width="2"/>' +
+                '<path d="' + bodyPath + '" fill="' + body.color + '" stroke="#0f172a" stroke-width="2"/>' +
+                '<g clip-path="url(#' + clipId + ')">' + pattern + '</g>' +
+                '<path d="M 32 14 L 32 56" stroke="rgba(15,23,42,0.28)" stroke-width="2" stroke-dasharray="3 2.5"/>' +
+                sprout + face + '</svg>';
+        }
         function buildEyesSVG(eyesId) {
             var smile = '<path d="M 28 36 Q 32 39 36 36" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>';
             if (eyesId === 'shades') return '<rect x="17" y="23" width="30" height="11" rx="5.5" fill="#0f172a"/>' + smile;
             if (eyesId === 'starry') return '<text x="24" y="33" font-size="11" text-anchor="middle">⭐</text><text x="40" y="33" font-size="11" text-anchor="middle">⭐</text>' + smile;
             if (eyesId === 'wink') return '<circle cx="24" cy="28" r="2.6" fill="#0f172a"/><path d="M 36 28 q 4 -3 8 0" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>' + smile;
+            if (eyesId === 'sleepy') return '<path d="M 20 28 q 4 3 8 0" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 36 28 q 4 3 8 0" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>' + '<path d="M 29 37 Q 32 39 35 37" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>';
             return '<circle cx="24" cy="28" r="2.6" fill="#0f172a"/><circle cx="40" cy="28" r="2.6" fill="#0f172a"/>' + smile;
         }
         function buildAvatarSVG(p, size = 64) {
+            if ((p.species || 'podling') === 'podling') return buildPodlingSVG(p, size);
             const skin = p.skinColor || '#ffb4a2';
             const outfit = p.outfitColor || '#7c3aed';
             const hatObj = HATS.find(h => h.id === p.hat);
@@ -940,18 +993,17 @@
         function initWardrobeUI() {
             document.getElementById('avatarNameInput').value = myPlayer.name;
             document.getElementById('avatarStatusInput').value = myPlayer.status;
-            document.getElementById('colorPickerRow').innerHTML = SKIN_COLORS.map(c => `
-                <button onclick="updateLocalAvatarField('skinColor', '${c}')" class="btn-game w-7 h-7 rounded-full border-2 ${myPlayer.skinColor === c ? 'border-white scale-110' : 'border-slate-800'}" style="background:${c}"></button>
+            var pfeat0 = myPlayer.features || {};
+            document.getElementById('colorPickerRow').innerHTML = PODLING_BODIES.map(b => `
+                <button onclick="updatePodlingFeature('body', '${b.id}')" title="${b.id}" class="btn-game w-7 h-7 rounded-full border-2 ${pfeat0.body === b.id ? 'border-white scale-110' : 'border-slate-800'}" style="background:${b.color}"></button>
             `).join('');
-            document.getElementById('outfitPickerRow').innerHTML = OUTFIT_COLORS.map(c => `
-                <button onclick="updateLocalAvatarField('outfitColor', '${c}')" class="btn-game w-7 h-7 rounded-lg border-2 ${myPlayer.outfitColor === c ? 'border-white scale-110' : 'border-slate-800'}" style="background:${c}"></button>
+            document.getElementById('outfitPickerRow').innerHTML = PODLING_SPROUTS.map(s => `
+                <button onclick="updatePodlingFeature('sprout', '${s.id}')" title="${s.id}" class="btn-game h-9 rounded-xl border flex items-center justify-center text-base ${pfeat0.sprout === s.id ? 'bg-violet-600/30 border-violet-400' : 'bg-slate-950 border-slate-800'}">${s.icon}</button>
             `).join('');
-            document.getElementById('hatPickerRow').innerHTML = HATS.map(h => `
-                <button onclick="updateLocalAvatarField('hat', '${h.id}')" class="btn-game h-9 rounded-xl border flex items-center justify-center text-base ${myPlayer.hat === h.id ? 'bg-violet-600/30 border-violet-400' : 'bg-slate-950 border-slate-800'}">${h.icon}</button>
+            document.getElementById('hatPickerRow').innerHTML = PODLING_FACES.map(f => `
+                <button onclick="updatePodlingFeature('face', '${f.id}')" title="${f.id}" class="btn-game h-9 rounded-xl border flex items-center justify-center text-base ${pfeat0.face === f.id ? 'bg-violet-600/30 border-violet-400' : 'bg-slate-950 border-slate-800'}">${f.icon}</button>
             `).join('');
-            document.getElementById('eyesPickerRow').innerHTML = EYES.map(e => `
-                <button onclick="updateLocalAvatarField('eyes', '${e.id}')" class="btn-game h-9 rounded-xl border flex items-center justify-center text-base ${myPlayer.eyes === e.id ? 'bg-violet-600/30 border-violet-400' : 'bg-slate-950 border-slate-800'}">${e.icon}</button>
-            `).join('');
+            document.getElementById('eyesPickerRow').parentElement.style.display = 'none';
             document.getElementById('wardrobeAvatarPreview').innerHTML = buildAvatarSVG(myPlayer, 56);
             document.getElementById('miniHeaderAvatar').innerHTML = buildAvatarSVG(myPlayer, 18);
         }
@@ -964,10 +1016,21 @@
             syncMyPlayerToCloud(); persistAll();
         };
 
+        window.updatePodlingFeature = function(slot, val) {
+            myPlayer.features = myPlayer.features || {};
+            myPlayer.features[slot] = val;
+            myPlayer.updatedAt = Date.now();
+            initWardrobeUI();
+            renderRosterBar();
+            syncMyPlayerToCloud(); persistAll(); playTone('pop');
+        };
+
         window.randomizeAvatar = function() {
-            myPlayer.skinColor = SKIN_COLORS[Math.floor(Math.random() * SKIN_COLORS.length)];
-            myPlayer.outfitColor = OUTFIT_COLORS[Math.floor(Math.random() * OUTFIT_COLORS.length)];
-            myPlayer.hat = HATS[Math.floor(Math.random() * HATS.length)].id;
+            myPlayer.features = {
+                body: PODLING_BODIES[Math.floor(Math.random() * PODLING_BODIES.length)].id,
+                sprout: PODLING_SPROUTS[Math.floor(Math.random() * PODLING_SPROUTS.length)].id,
+                face: PODLING_FACES[Math.floor(Math.random() * PODLING_FACES.length)].id
+            };
             playTone('win');
             initWardrobeUI();
             renderRosterBar();
@@ -1041,15 +1104,34 @@
 
                 ctx.save();
                 ctx.translate(px, py);
-                ctx.fillStyle = p.outfitColor || '#7c3aed';
+                var pfeat = p.features || {};
+                var pbody = PODLING_BODIES.find(function(b) { return b.id === pfeat.body; }) || PODLING_BODIES[0];
+                var psprout = PODLING_SPROUTS.find(function(s) { return s.id === pfeat.sprout; }) || PODLING_SPROUTS[0];
+                ctx.fillStyle = pbody.color;
                 ctx.beginPath();
-                ctx.roundRect(-14, 2, 28, 20, [10, 10, 4, 4]);
+                ctx.roundRect(-15, -24, 30, 46, 15);
                 ctx.fill();
-
-                ctx.fillStyle = p.skinColor || '#ffb4a2';
-                ctx.beginPath();
-                ctx.roundRect(-15, -22, 30, 26, 13);
-                ctx.fill();
+                ctx.strokeStyle = 'rgba(15,23,42,0.35)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([3, 2.5]);
+                ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(0, 20); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = '#0f172a';
+                ctx.strokeStyle = '#0f172a';
+                if (pfeat.face === 'sleepy') {
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(-7, -4, 4, 0.3, Math.PI - 0.3); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(7, -4, 4, 0.3, Math.PI - 0.3); ctx.stroke();
+                } else if (pfeat.face === 'starry') {
+                    ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+                    ctx.fillText('\u2B50', -7, 0); ctx.fillText('\u2B50', 7, 0);
+                } else {
+                    ctx.beginPath(); ctx.arc(-7, -4, 2.6, 0, 7); ctx.fill();
+                    ctx.beginPath(); ctx.arc(7, -4, 2.6, 0, 7); ctx.fill();
+                }
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(0, 4, 4, 0.4, Math.PI - 0.4); ctx.stroke();
+                if (psprout.id !== 'none') { ctx.font = '14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(psprout.icon, 0, -26); }
 
                 ctx.font = 'bold 10px sans-serif';
                 ctx.fillStyle = '#ffffff';
@@ -1275,7 +1357,8 @@
         }
         function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveData)); } catch (e) {} }
         function persistAll() {
-            saveData.player = { name: myPlayer.name, status: myPlayer.status, skinColor: myPlayer.skinColor, outfitColor: myPlayer.outfitColor, hat: myPlayer.hat, eyes: myPlayer.eyes };
+            saveData.player = { name: myPlayer.name, status: myPlayer.status, species: 'podling',
+                features: Object.assign({ body: 'mint', sprout: 'leaf', face: 'happy' }, myPlayer.features) };
             saveData.env = { weather: roomWeather, gravity: roomGravity };
             saveData.coins = arcadeCoins; saveData.xp = playerXP; saveData.level = playerLevel;
             writeSave();
@@ -1284,8 +1367,16 @@
         function applySaveData() {
             loadSaveData();
             myUserId = saveData.uid; myPlayer.id = myUserId;
+            myPlayer.species = 'podling';
+            var sfeat = (saveData.player && saveData.player.features) || null;
+            var legFace = (saveData.player && saveData.player.eyes === 'starry') ? 'starry' : 'happy';
+            myPlayer.features = {
+                body: (sfeat && sfeat.body) || 'mint',
+                sprout: (sfeat && sfeat.sprout) || 'leaf',
+                face: (sfeat && sfeat.face) || legFace
+            };
             if (saveData.player) {
-                ['name','status','skinColor','outfitColor','hat','eyes'].forEach(function(f) {
+                ['name','status'].forEach(function(f) {
                     if (saveData.player[f] !== undefined && saveData.player[f] !== null) myPlayer[f] = saveData.player[f];
                 });
             }
