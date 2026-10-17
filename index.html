@@ -915,6 +915,13 @@
             renderRosterBar();
         }
 
+        function buildEyesSVG(eyesId) {
+            var smile = '<path d="M 28 36 Q 32 39 36 36" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>';
+            if (eyesId === 'shades') return '<rect x="17" y="23" width="30" height="11" rx="5.5" fill="#0f172a"/>' + smile;
+            if (eyesId === 'starry') return '<text x="24" y="33" font-size="11" text-anchor="middle">⭐</text><text x="40" y="33" font-size="11" text-anchor="middle">⭐</text>' + smile;
+            if (eyesId === 'wink') return '<circle cx="24" cy="28" r="2.6" fill="#0f172a"/><path d="M 36 28 q 4 -3 8 0" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>' + smile;
+            return '<circle cx="24" cy="28" r="2.6" fill="#0f172a"/><circle cx="40" cy="28" r="2.6" fill="#0f172a"/>' + smile;
+        }
         function buildAvatarSVG(p, size = 64) {
             const skin = p.skinColor || '#ffb4a2';
             const outfit = p.outfitColor || '#7c3aed';
@@ -925,9 +932,7 @@
                 <ellipse cx="32" cy="59" rx="16" ry="3.5" fill="rgba(0,0,0,0.35)"/>
                 <path d="M 16 56 C 16 42 48 42 48 56 Z" fill="${outfit}" stroke="#0f172a" stroke-width="2"/>
                 <rect x="16" y="14" width="32" height="29" rx="14" fill="${skin}" stroke="#0f172a" stroke-width="2"/>
-                <circle cx="24" cy="28" r="2.6" fill="#0f172a"/>
-                <circle cx="40" cy="28" r="2.6" fill="#0f172a"/>
-                <path d="M 28 36 Q 32 39 36 36" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>
+                ${buildEyesSVG(p.eyes)}
                 ${hatEmoji ? `<text x="32" y="16" font-size="16" text-anchor="middle">${hatEmoji}</text>` : ''}
             </svg>`;
         }
