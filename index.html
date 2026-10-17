@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CozyPod">
+    <title>CozyPod — Private 4-Player Lounge & Turn-Based Arcade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.45);
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b0f19;
+            color: #f8fafc;
+            overflow: hidden;
+            height: 100dvh;
+            width: 100vw;
+        }
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 9999px;
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-float {
+            animation: floatSlow 3s ease-in-out infinite;
+        }
+        .animate-pop {
+            animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .btn-game {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-game:active {
+            transform: translateY(2px) scale(0.97);
+        }
+        @keyframes micPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+            50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+        .mic-active {
+            animation: micPulse 1.4s infinite;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-[100dvh] w-full max-w-md md:max-w-4xl mx-auto bg-slate-950 border-x border-slate-800/80 shadow-2xl relative overflow-hidden">
+
+    <div id="splashScreen" class="absolute inset-0 bg-slate-950/98 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-6 text-center animate-pop">
+        <div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-amber-500 flex items-center justify-center shadow-2xl shadow-violet-500/30 mb-3 animate-float">
+            <i class="fa-solid fa-gamepad text-white text-2xl"></i>
+        </div>
+        <h1 class="font-display font-extrabold text-2xl text-white tracking-wider mb-1">COZYPOD</h1>
+        <p class="text-xs text-slate-400 mb-5">Private 4-Player Lounge & Turn Arcade</p>
+
+        <div class="w-full max-w-xs space-y-2.5 mb-5">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex items-center gap-3">
+                <div id="splashAvatarPreview" class="w-11 h-11 rounded-xl bg-slate-950 border border-violet-500/40 flex items-center justify-center shrink-0"></div>
+                <input id="splashNameInput" type="text" maxlength="14" placeholder="Your Name" value="Alex"
+                    class="flex-1 bg-slate-950 border border-slate-700 focus:border-violet-500 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none">
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-violet-500/20 border border-violet-500/40 flex items-center justify-center text-violet-300 shrink-0">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <input id="splashRoomInput" type="text" maxlength="12" value="SQUAD-4"
+                    class="flex-1 bg-slate-950 border border-slate-700 focus:border-violet-500 rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-white outline-none">
+            </div>
+        </div>
+
+        <div class="w-full max-w-xs space-y-2">
+            <button onclick="enterLoungeFromSplash()" class="btn-game w-full py-3 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-amber-500 text-white font-display font-bold text-sm shadow-xl shadow-violet-600/30">
+                Enter Lounge
+            </button>
+            <button onclick="handleGoogleSignIn()" class="btn-game w-full py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2">
+                <i class="fa-brands fa-google text-amber-400"></i>
+                <span id="googleAuthText">Sign In with Google</span>
+            </button>
+        </div>
+    </div>
+
+    <header class="flex items-center justify-between px-3 py-2 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 z-20 shrink-0">
+        <div class="flex items-center gap-2">
+            <button onclick="openSplashMenu()" class="btn-game text-xs font-display font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-xl bg-violet-500/20 text-violet-300 border border-violet-500/30 flex items-center gap-1.5">
+                <i class="fa-solid fa-gamepad text-[10px]"></i>
+                <span id="headerRoomText">SQUAD-4</span>
+            </button>
+            <div id="coinBadge" class="text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                <i class="fa-solid fa-coins text-[10px]"></i>
+                <span id="coinCountVal">50</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+            <button id="micBtn" onclick="toggleVoiceChat()" class="btn-game px-2.5 h-8 rounded-xl bg-slate-800/90 border border-slate-700/70 text-slate-400 flex items-center gap-1.5 text-xs font-bold">
+                <i class="fa-solid fa-microphone-slash" id="micIcon"></i>
+                <span id="micPeerCount" class="hidden text-[10px] bg-emerald-500 text-slate-950 px-1 rounded-full font-extrabold">0</span>
+            </button>
+            <button onclick="toggleBgm()" id="bgmBtn" class="btn-game w-8 h-8 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center text-xs">
+                <i class="fa-solid fa-music" id="bgmIcon"></i>
+            </button>
+            <button onclick="toggleSound()" id="soundBtn" class="btn-game w-8 h-8 rounded-xl bg-slate-800/90 border border-slate-700/70 text-emerald-400 flex items-center justify-center text-xs">
+                <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+            </button>
+            <button onclick="openDeployModal()" class="btn-game w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center text-xs">
+                <i class="fa-solid fa-rocket"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="bg-slate-900/60 border-b border-slate-800/60 px-3 py-1 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar z-10 shrink-0">
+        <div id="playerRosterBar" class="flex items-center gap-1.5"></div>
+        <div class="flex items-center gap-1 shrink-0">
+            <button onclick="throwFunItem('confetti')" class="btn-game w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm flex items-center justify-center border border-slate-700/80">🎉</button>
+            <button onclick="throwFunItem('plane')" class="btn-game w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm flex items-center justify-center border border-slate-700/80">✈️</button>
+            <button onclick="throwFunItem('boba')" class="btn-game w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm flex items-center justify-center border border-slate-700/80">🧋</button>
+        </div>
+    </div>
+
+    <main class="flex-1 relative overflow-hidden flex flex-col">
+
+        <!-- VIEW 1: LIVE INTERACTIVE LOUNGE -->
+        <section id="view-lounge" class="flex-1 relative flex flex-col overflow-hidden">
+            <div id="canvasContainer" class="relative flex-1 w-full bg-slate-950 overflow-hidden">
+                <canvas id="lobbyCanvas"></canvas>
+
+                <!-- Environment & Toybox Quick Toggles Bar -->
+                <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 pointer-events-auto">
+                    <button onclick="toggleWeather()" class="btn-game w-8 h-8 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-violet-300 text-xs flex items-center justify-center shadow-lg" title="Weather">
+                        🌧️
+                    </button>
+                    <button onclick="toggleGravity()" class="btn-game w-8 h-8 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-amber-300 text-xs flex items-center justify-center shadow-lg" title="Gravity">
+                        🎈
+                    </button>
+                    <button onclick="spawnGachaCapsule()" class="btn-game px-2.5 h-8 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-lg" title="Gacha Toy">
+                        <span>🎁</span>
+                        <span id="gachaCoinCost">20</span>
+                    </button>
+                </div>
+
+                <!-- Active Turn Pill -->
+                <div id="liveGameBanner" class="hidden absolute top-2.5 left-2.5 bg-slate-900/90 backdrop-blur-md border border-violet-500/40 rounded-full pl-2.5 pr-1.5 py-1 shadow-xl flex items-center gap-2 animate-pop">
+                    <span id="bannerGameIcon" class="text-xs">🎲</span>
+                    <span id="bannerTurnStatus" class="text-[11px] font-bold text-violet-200"></span>
+                    <button onclick="switchTab('games')" class="btn-game px-2.5 py-0.5 rounded-full bg-violet-500 text-white font-bold text-[10px]">
+                        Play
+                    </button>
+                </div>
+
+                <!-- Emote Bar -->
+                <div class="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+                    <div class="pointer-events-auto flex items-center gap-1 bg-slate-900/85 backdrop-blur-md border border-slate-700/80 p-1 rounded-2xl shadow-xl">
+                        <button onclick="triggerEmote('👋')" class="btn-game w-8 h-8 rounded-xl hover:bg-slate-800 flex items-center justify-center text-base">👋</button>
+                        <button onclick="triggerEmote('😂')" class="btn-game w-8 h-8 rounded-xl hover:bg-slate-800 flex items-center justify-center text-base">😂</button>
+                        <button onclick="triggerEmote('🔥')" class="btn-game w-8 h-8 rounded-xl hover:bg-slate-800 flex items-center justify-center text-base">🔥</button>
+                        <button onclick="triggerEmote('❤️')" class="btn-game w-8 h-8 rounded-xl hover:bg-slate-800 flex items-center justify-center text-base">❤️</button>
+                        <button onclick="triggerEmote('👀')" class="btn-game w-8 h-8 rounded-xl hover:bg-slate-800 flex items-center justify-center text-base">👀</button>
+                        <button onclick="triggerEmote('🕺')" class="btn-game w-8 h-8 rounded-xl bg-violet-600/30 border border-violet-500/40 flex items-center justify-center text-base">🕺</button>
+                    </div>
+
+                    <button onclick="openPixelWallModal()" class="pointer-events-auto btn-game w-10 h-10 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-fuchsia-500/40 text-fuchsia-300 text-sm flex items-center justify-center shadow-xl">
+                        <i class="fa-solid fa-spray-can-sparkles"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: MULTI-GAME ARCADE SUITE (FITS SINGLE SCREEN) -->
+        <section id="view-games" class="hidden flex-1 flex flex-col bg-slate-950 overflow-hidden p-2.5 gap-2">
+            <!-- Game Selector Carousel Strip -->
+            <div class="grid grid-cols-6 gap-1.5 shrink-0 overflow-x-auto no-scrollbar">
+                <button onclick="selectArcadeMode('connect4')" id="gameTab-connect4" class="btn-game py-2 px-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 bg-violet-600/25 border-violet-500 text-white">
+                    <span class="text-sm">🔴</span>
+                    <span class="font-bold text-[10px]">Drop4</span>
+                </button>
+                <button onclick="selectArcadeMode('wordbomb')" id="gameTab-wordbomb" class="btn-game py-2 px-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 bg-slate-900 border-slate-800 text-slate-300">
+                    <span class="text-sm">💣</span>
+                    <span class="font-bold text-[10px]">Bomb</span>
+                </button>
+                <button onclick="selectArcadeMode('trivia')" id="gameTab-trivia" class="btn-game py-2 px-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 bg-slate-900 border-slate-800 text-slate-300">
+                    <span class="text-sm">🧠</span>
+                    <span class="font-bold text-[10px]">Trivia</span>
+                </button>
+                <button onclick="selectArcadeMode('melody')" id="gameTab-melody" class="btn-game py-2 px-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 bg-slate-900 border-slate-800 text-slate-300">
+                    <span class="text-sm">🎹</span>
+                    <span class="font-bold text-[10px]">Melody</span>
+                </button>
+                <button onclick="selectArcadeMode('reflex')" id="gameTab-reflex" class="btn-game py-2 px-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 bg-slate-900 border-slate-800 text-slate-300">
+                    <span class="text-sm">⚡</span>
+                    <span class="font-bold text-[10px]">Reflex</span>
+                </button>
+                <button onclick="selectArcadeMode('hottakes')" id="gameTab-hottakes" class="btn-game py-2 px-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 bg-slate-900 border-slate-800 text-slate-300">
+                    <span class="text-sm">👑</span>
+                    <span class="font-bold text-[10px]">Vote</span>
+                </button>
+            </div>
+
+            <!-- Active Game Stage Container -->
+            <div class="flex-1 bg-slate-900/80 border border-slate-800 rounded-3xl p-3 flex flex-col justify-between relative overflow-hidden">
+                
+                <!-- MINI-GAME: CONNECT 4 (DROP 4) -->
+                <div id="stage-connect4" class="flex-1 flex flex-col justify-between overflow-hidden">
+                    <div class="flex items-center justify-between shrink-0">
+                        <div id="c4TurnOrderPills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar"></div>
+                        <button onclick="resetConnect4()" class="btn-game w-7 h-7 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 flex items-center justify-center">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center overflow-hidden my-1">
+                        <div id="c4BoardContainer" class="bg-slate-950 p-2 rounded-2xl border-2 border-slate-800 shadow-inner w-full max-w-[280px]">
+                            <div id="c4Grid" class="grid grid-cols-7 gap-1.5"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MINI-GAME: SYLLABLE BOMB -->
+                <div id="stage-wordbomb" class="hidden flex-1 flex flex-col justify-between overflow-hidden">
+                    <div class="flex items-center justify-between shrink-0">
+                        <div id="bombTurnBadge" class="px-2.5 py-1 rounded-full bg-violet-500/20 border border-violet-500/40 text-violet-200 text-xs font-bold"></div>
+                        <button onclick="startNewWordBombRound()" class="btn-game w-7 h-7 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs flex items-center justify-center">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center justify-center text-center">
+                        <div class="relative w-24 h-24 rounded-full bg-gradient-to-b from-slate-800 to-slate-950 border-4 border-amber-500/70 flex flex-col items-center justify-center shadow-2xl mb-2">
+                            <span id="bombSyllableText" class="font-display font-extrabold text-3xl text-white tracking-wider">ST</span>
+                            <span id="bombUsedCount" class="text-[10px] text-amber-400 font-bold">0</span>
+                        </div>
+                        <p id="bombLastWordText" class="text-xs text-emerald-400 font-bold h-4"></p>
+                    </div>
+                    <form onsubmit="submitBombWord(event)" class="flex gap-1.5 shrink-0">
+                        <input type="text" id="bombWordInput" placeholder="Word..." autocomplete="off"
+                            class="flex-1 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3 py-2 text-sm text-white outline-none">
+                        <button type="submit" class="btn-game px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs">
+                            💣
+                        </button>
+                    </form>
+                </div>
+
+                <!-- MINI-GAME: TRIVIA GAME SHOW -->
+                <div id="stage-trivia" class="hidden flex-1 flex flex-col justify-between overflow-hidden gap-2">
+                    <div class="bg-gradient-to-br from-violet-950 to-slate-900 border border-violet-500/40 rounded-2xl p-3 flex items-center justify-between shrink-0">
+                        <span id="triviaCategoryTag" class="text-[10px] font-bold text-violet-300 uppercase tracking-wider">Pop Culture</span>
+                        <button onclick="nextTriviaQuestion()" class="btn-game w-7 h-7 rounded-xl bg-violet-500/20 text-violet-200 text-xs flex items-center justify-center">
+                            <i class="fa-solid fa-shuffle"></i>
+                        </button>
+                    </div>
+                    <div class="flex-1 flex flex-col justify-center gap-3">
+                        <h3 id="triviaQuestionText" class="font-display font-bold text-sm text-white text-center">Question?</h3>
+                        <div id="triviaOptionsGrid" class="grid grid-cols-2 gap-2"></div>
+                    </div>
+                </div>
+
+                <!-- MINI-GAME: MELODY RELAY (SIMON SAYS) -->
+                <div id="stage-melody" class="hidden flex-1 flex flex-col justify-between overflow-hidden gap-2">
+                    <div class="flex items-center justify-between shrink-0">
+                        <span id="melodyScoreText" class="text-xs font-bold text-amber-400">Sequence: 0</span>
+                        <button onclick="startMelodySequence()" class="btn-game px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
+                            Play Tone
+                        </button>
+                    </div>
+                    <div class="flex-1 grid grid-cols-2 gap-2.5 content-center max-w-[260px] mx-auto w-full">
+                        <button onclick="tapMelodyPad(0)" id="melodyPad-0" class="btn-game aspect-square rounded-2xl bg-violet-600/30 border-2 border-violet-500/60 flex items-center justify-center text-2xl">🎹</button>
+                        <button onclick="tapMelodyPad(1)" id="melodyPad-1" class="btn-game aspect-square rounded-2xl bg-fuchsia-600/30 border-2 border-fuchsia-500/60 flex items-center justify-center text-2xl">🎸</button>
+                        <button onclick="tapMelodyPad(2)" id="melodyPad-2" class="btn-game aspect-square rounded-2xl bg-emerald-600/30 border-2 border-emerald-500/60 flex items-center justify-center text-2xl">🎷</button>
+                        <button onclick="tapMelodyPad(3)" id="melodyPad-3" class="btn-game aspect-square rounded-2xl bg-amber-600/30 border-2 border-amber-500/60 flex items-center justify-center text-2xl">🎻</button>
+                    </div>
+                </div>
+
+                <!-- MINI-GAME: REFLEX SHOWDOWN -->
+                <div id="stage-reflex" class="hidden flex-1 flex flex-col items-center justify-between p-4 overflow-hidden text-center">
+                    <div id="reflexStatusHeader" class="font-display font-bold text-sm text-amber-400">Ready for the Signal?</div>
+                    <button onclick="triggerReflexBuzzer()" id="reflexBuzzerBtn" class="btn-game w-32 h-32 rounded-full bg-gradient-to-br from-red-600 to-orange-600 border-4 border-amber-400/80 shadow-2xl flex items-center justify-center text-3xl font-extrabold text-white">
+                        BUZZ
+                    </button>
+                    <p id="reflexResultText" class="text-xs text-slate-300 h-6 font-bold"></p>
+                </div>
+
+                <!-- MINI-GAME: VOTE (MOST LIKELY TO) -->
+                <div id="stage-hottakes" class="hidden flex-1 flex flex-col justify-between overflow-hidden gap-2">
+                    <div class="bg-gradient-to-br from-violet-950/90 via-slate-900 to-fuchsia-950/80 border border-violet-500/30 rounded-2xl p-3 text-center flex items-center justify-between gap-2 shrink-0">
+                        <h3 id="hotTakeQuestionText" class="font-display font-bold text-xs sm:text-sm text-white text-left flex-1"></h3>
+                        <button onclick="nextHotTakePrompt()" class="btn-game w-8 h-8 rounded-xl bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 text-xs flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-shuffle"></i>
+                        </button>
+                    </div>
+                    <div id="hotTakeCandidatesGrid" class="grid grid-cols-2 gap-2 flex-1 content-center overflow-y-auto"></div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- VIEW 3: AVATAR WARDROBE & TROPHY SHELF -->
+        <section id="view-wardrobe" class="hidden flex-1 flex flex-col bg-slate-950 overflow-hidden p-2.5 gap-2">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex items-center gap-3 shrink-0">
+                <div class="relative w-15 h-15 rounded-xl bg-slate-950 border border-violet-500/40 flex items-center justify-center shrink-0">
+                    <div id="wardrobeAvatarPreview" class="w-14 h-14"></div>
+                </div>
+                <div class="flex-1 flex flex-col gap-1.5">
+                    <div class="flex gap-1.5">
+                        <input id="avatarNameInput" type="text" maxlength="14" placeholder="Name"
+                            oninput="updateLocalAvatarField('name', this.value)"
+                            class="flex-1 bg-slate-950 border border-slate-700 focus:border-violet-500 rounded-xl px-2.5 py-1 text-xs font-bold text-white outline-none">
+                        <button onclick="randomizeAvatar()" class="btn-game px-2.5 py-1 rounded-xl bg-violet-600/25 border border-violet-500/40 text-violet-300 text-xs">
+                            <i class="fa-solid fa-dice"></i>
+                        </button>
+                    </div>
+                    <input id="avatarStatusInput" type="text" maxlength="20" placeholder="Status..."
+                        oninput="updateLocalAvatarField('status', this.value)"
+                        class="w-full bg-slate-950 border border-slate-700 focus:border-violet-500 rounded-xl px-2.5 py-1 text-[11px] text-slate-200 outline-none">
+                </div>
+            </div>
+
+            <!-- Customization & Trophy Shelf -->
+            <div class="flex-1 bg-slate-900/70 border border-slate-800 rounded-2xl p-2.5 flex flex-col justify-between overflow-y-auto gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm w-5 text-center">🎨</span>
+                    <div id="colorPickerRow" class="flex flex-1 justify-between gap-1"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm w-5 text-center">👕</span>
+                    <div id="outfitPickerRow" class="flex flex-1 justify-between gap-1"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm w-5 text-center">🎩</span>
+                    <div id="hatPickerRow" class="grid grid-cols-8 gap-1 flex-1"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm w-5 text-center">😎</span>
+                    <div id="eyesPickerRow" class="grid grid-cols-6 gap-1 flex-1"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm w-5 text-center">🏆</span>
+                    <div class="flex items-center gap-1.5 text-xs text-amber-300 font-bold px-2 py-1 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                        <span>🏆 Squad Trophy Shelf: Unlocked Crowns & Rare Hats</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compact Chat Strip -->
+        <section class="bg-slate-900/95 border-t border-slate-800/90 px-2.5 py-1.5 flex flex-col gap-1 z-20 shrink-0">
+            <div id="chatHistoryBox" class="max-h-11 overflow-y-auto space-y-0.5 pr-1 text-[11px]"></div>
+            <form onsubmit="handleSendChat(event)" class="flex items-center gap-1.5">
+                <input id="chatInput" type="text" maxlength="120" placeholder="Chat..." autocomplete="off"
+                    class="flex-1 bg-slate-950 border border-slate-800 focus:border-violet-500 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 outline-none">
+                <button type="submit" class="btn-game w-8 h-8 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                </button>
+            </form>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="grid grid-cols-3 gap-1.5 px-3 py-1.5 bg-slate-950 border-t border-slate-800/90 z-20 shrink-0">
+        <button onclick="switchTab('lounge')" id="nav-lounge" class="btn-game flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-600/20 text-violet-300 border border-violet-500/40 font-bold text-xs">
+            <i class="fa-solid fa-couch"></i>
+            <span>Lounge</span>
+        </button>
+        <button onclick="switchTab('games')" id="nav-games" class="btn-game flex items-center justify-center gap-1.5 py-2 rounded-xl text-slate-400 hover:text-slate-200 border border-transparent font-bold text-xs relative">
+            <i class="fa-solid fa-gamepad"></i>
+            <span>Games</span>
+            <span id="navGameDot" class="hidden w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        </button>
+        <button onclick="switchTab('wardrobe')" id="nav-wardrobe" class="btn-game flex items-center justify-center gap-1.5 py-2 rounded-xl text-slate-400 hover:text-slate-200 border border-transparent font-bold text-xs">
+            <div id="miniHeaderAvatar" class="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center"></div>
+            <span>Style</span>
+        </button>
+    </nav>
+
+    <!-- MODAL 1: SHARED PIXEL GRAFFITI WALL -->
+    <div id="pixelWallModal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-3.5 space-y-3 shadow-2xl animate-pop">
+            <div class="flex items-center justify-between">
+                <span class="font-display font-bold text-sm text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-spray-can-sparkles text-fuchsia-400"></i> Graffiti
+                </span>
+                <button onclick="closePixelWallModal()" class="w-7 h-7 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="pixelWallGrid" class="grid grid-cols-12 gap-1 bg-slate-950 p-2 rounded-2xl border border-slate-800 aspect-[12/8]"></div>
+            <div class="flex items-center justify-between gap-2">
+                <div id="pixelPaletteRow" class="flex items-center gap-1.5"></div>
+                <button onclick="clearPixelWall()" class="btn-game px-2.5 py-1 rounded-xl bg-slate-800 text-xs text-slate-300 border border-slate-700">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: SHARE & 1-CLICK LIVE DEPLOY -->
+    <div id="deployModal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-4 space-y-3 shadow-2xl animate-pop">
+            <div class="flex items-center justify-between">
+                <h3 class="font-display font-bold text-sm text-white flex items-center gap-2">
+                    <i class="fa-solid fa-rocket text-emerald-400"></i> Live Deploy & Invite
+                </h3>
+                <button onclick="closeDeployModal()" class="w-7 h-7 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="launchInstantCodePenDeploy()" class="btn-game py-2.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>1-Click Live URL</span>
+                </button>
+                <button onclick="downloadStandaloneHtml()" class="btn-game py-2.5 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-download text-violet-400"></i>
+                    <span>Get index.html</span>
+                </button>
+            </div>
+
+            <div class="flex gap-1.5">
+                <input id="shareUrlInput" type="text" readonly
+                    class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 font-mono text-[11px] text-emerald-300 outline-none">
+                <button onclick="copyShareLink()" class="btn-game px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs shrink-0">
+                    <span id="copyShareBtnText">Copy Link</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden form for 1-Click Live Web Host via CodePen Define API -->
+    <form id="codepenDeployForm" action="https://codepen.io/pen/define" method="POST" target="_blank" class="hidden">
+        <input type="hidden" name="data" id="codepenFormData">
+    </form>
+
+    <div id="remoteAudioContainer" class="hidden"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const EXTERNAL_FIREBASE_CONFIG = null;
+
+        // --- STREAMING_CHUNK:Initializing Procedural Audio Engine (SFX & BGM)... ---
+        let soundEnabled = true;
+        let bgmEnabled = true;
+        let bgmStarted = false;
+        let audioCtx = null;
+        let bgmStep = 0;
+        let bgmIntervalId = null;
+        let noiseBuffer = null;
+        let jukeboxPlaying = true;
+        let currentVibeIndex = 0;
+
+        function ensureAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const bufferSize = audioCtx.sampleRate * 1.5;
+                noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            if (bgmEnabled && !bgmStarted) {
+                startProceduralBgmLoop();
+            }
+        }
+
+        window.addEventListener('pointerdown', () => ensureAudioContext(), { once: true });
+        window.addEventListener('keydown', () => ensureAudioContext(), { once: true });
+
+        function playNoiseBurst(duration = 0.08, filterType = 'bandpass', freq = 1200, q = 2, gainVal = 0.08) {
+            if (!soundEnabled || !audioCtx || !noiseBuffer) return;
+            const now = audioCtx.currentTime;
+            const src = audioCtx.createBufferSource();
+            src.buffer = noiseBuffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = filterType;
+            filter.frequency.setValueAtTime(freq, now);
+            filter.Q.value = q;
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(gainVal, now);
+            gain.gain.exponentialRampToValueAtTime(0.0008, now + duration);
+            src.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            src.start(now);
+            src.stop(now + duration);
+        }
+
+        function playTone(type = 'pop', customFreq = 420) {
+            if (!soundEnabled) return;
+            try {
+                ensureAudioContext();
+                const now = audioCtx.currentTime;
+                if (type === 'pop') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(customFreq, now);
+                    osc.frequency.exponentialRampToValueAtTime(customFreq * 2, now + 0.075);
+                    gain.gain.setValueAtTime(0.11, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.085);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.085);
+                } else if (type === 'spray') {
+                    playNoiseBurst(0.09, 'highpass', 2400, 1.2, 0.06);
+                } else if (type === 'slurp') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(260, now);
+                    osc.frequency.exponentialRampToValueAtTime(690, now + 0.14);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'disc') {
+                    [0, 0.07].forEach((offset, i) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(320 + i * 100, now + offset);
+                        gain.gain.setValueAtTime(0.14, now + offset);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.05);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + offset);
+                        osc.stop(now + offset + 0.05);
+                    });
+                } else if (type === 'win') {
+                    [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.075);
+                        gain.gain.setValueAtTime(0.12, now + idx * 0.075);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.075 + 0.25);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + idx * 0.075);
+                        osc.stop(now + idx * 0.075 + 0.25);
+                    });
+                }
+            } catch (e) {}
+        }
+
+        function playVocalChatBlips(text, speakerName = 'Alex') {
+            if (!soundEnabled) return;
+            try {
+                ensureAudioContext();
+                const seed = speakerName.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+                const basePitch = 300 + (seed % 180);
+                const letters = text.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).split('');
+                const now = audioCtx.currentTime;
+                letters.forEach((char, i) => {
+                    const offset = i * 0.05;
+                    const freq = basePitch + ((char.toLowerCase().charCodeAt(0) * 17) % 150);
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(freq, now + offset);
+                    gain.gain.setValueAtTime(0.05, now + offset);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.04);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + offset);
+                    osc.stop(now + offset + 0.045);
+                });
+            } catch (e) {}
+        }
+
+        const BGM_PATTERNS = [
+            { chords: [[261.63, 329.63, 392.00], [220.00, 261.63, 329.63]], melody: [523.25, 0, 659.25, 587.33, 0, 493.88], wave: 'triangle' },
+            { chords: [[293.66, 369.99, 440.00], [246.94, 293.66, 369.99]], melody: [587.33, 0, 739.99, 659.25, 0, 587.33], wave: 'sine' }
+        ];
+
+        function triggerBgmStep() {
+            if (!bgmEnabled || !jukeboxPlaying || !audioCtx || audioCtx.state !== 'running') return;
+            const pattern = BGM_PATTERNS[currentVibeIndex % BGM_PATTERNS.length];
+            const step = bgmStep % 16;
+            const now = audioCtx.currentTime;
+
+            if (step === 0) {
+                pattern.chords[0].forEach(freq => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = pattern.wave;
+                    osc.frequency.setValueAtTime(freq, now);
+                    gain.gain.setValueAtTime(0.015, now);
+                    gain.gain.exponentialRampToValueAtTime(0.0008, now + 2.0);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 2.1);
+                });
+            }
+            bgmStep++;
+        }
+
+        function startProceduralBgmLoop() {
+            if (bgmIntervalId) clearInterval(bgmIntervalId);
+            bgmStarted = true;
+            bgmIntervalId = setInterval(triggerBgmStep, 180);
+        }
+
+        window.toggleBgm = function () {
+            ensureAudioContext();
+            bgmEnabled = !bgmEnabled;
+            const btn = document.getElementById('bgmBtn');
+            const icon = document.getElementById('bgmIcon');
+            if (bgmEnabled) {
+                jukeboxPlaying = true;
+                btn.className = 'btn-game w-8 h-8 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center text-xs';
+                icon.className = 'fa-solid fa-music';
+            } else {
+                btn.className = 'btn-game w-8 h-8 rounded-xl bg-slate-800/90 border border-slate-700/70 text-slate-500 flex items-center justify-center text-xs';
+                icon.className = 'fa-solid fa-volume-off';
+            }
+        };
+
+        window.toggleSound = function () {
+            ensureAudioContext();
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('soundIcon');
+            icon.className = soundEnabled ? 'fa-solid fa-volume-high text-emerald-400' : 'fa-solid fa-volume-xmark text-slate-500';
+            if (soundEnabled) playTone('pop');
+        };
+
+        // --- STREAMING_CHUNK:Configuring WebRTC Voice Mesh & Analyser... ---
+        let voiceChatActive = false;
+        let localMicStream = null;
+        let micAnalyser = null;
+        let micDataArray = null;
+        let myVoiceLevel = 0;
+        let peerInstance = null;
+        let activeCalls = {};
+
+        window.toggleVoiceChat = async function () {
+            ensureAudioContext();
+            if (voiceChatActive) {
+                stopVoiceChat();
+                return;
+            }
+            try {
+                localMicStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+                voiceChatActive = true;
+                updateMicButtonUI(true);
+                playTone('win');
+
+                const micSource = audioCtx.createMediaStreamSource(localMicStream);
+                micAnalyser = audioCtx.createAnalyser();
+                micAnalyser.fftSize = 128;
+                micDataArray = new Uint8Array(micAnalyser.frequencyBinCount);
+                micSource.connect(micAnalyser);
+                initPeerJsRoomMesh(0);
+            } catch (err) {
+                voiceChatActive = false;
+                updateMicButtonUI(false);
+            }
+        };
+
+        function stopVoiceChat() {
+            voiceChatActive = false;
+            myVoiceLevel = 0;
+            if (localMicStream) {
+                localMicStream.getTracks().forEach(t => t.stop());
+                localMicStream = null;
+            }
+            Object.values(activeCalls).forEach(call => { try { call.close(); } catch (e) {} });
+            activeCalls = {};
+            if (peerInstance) {
+                try { peerInstance.destroy(); } catch (e) {}
+                peerInstance = null;
+            }
+            updateMicButtonUI(false);
+        }
+
+        function updateMicButtonUI(isOn) {
+            const btn = document.getElementById('micBtn');
+            const icon = document.getElementById('micIcon');
+            const countEl = document.getElementById('micPeerCount');
+            if (isOn) {
+                btn.className = 'btn-game px-2.5 h-8 rounded-xl bg-emerald-500/25 border border-emerald-400 text-emerald-300 flex items-center gap-1.5 text-xs font-bold mic-active';
+                icon.className = 'fa-solid fa-microphone';
+                const connectedCount = Object.keys(activeCalls).length;
+                if (connectedCount > 0) {
+                    countEl.textContent = connectedCount;
+                    countEl.classList.remove('hidden');
+                } else {
+                    countEl.classList.add('hidden');
+                }
+            } else {
+                btn.className = 'btn-game px-2.5 h-8 rounded-xl bg-slate-800/90 border border-slate-700/70 text-slate-400 flex items-center gap-1.5 text-xs font-bold';
+                icon.className = 'fa-solid fa-microphone-slash';
+                countEl.classList.add('hidden');
+            }
+        }
+
+        function getSeatPeerId(slot) {
+            return `cozypod-v2-${currentRoomCode.toLowerCase().replace(/[^a-z0-9]/g, '')}-seat-${slot}`;
+        }
+
+        function initPeerJsRoomMesh(trySlot = 0) {
+            if (!voiceChatActive || !localMicStream || typeof Peer === 'undefined' || trySlot > 3) return;
+            const peer = new Peer(getSeatPeerId(trySlot));
+            peer.on('open', () => {
+                peerInstance = peer;
+                for (let s = 0; s < 4; s++) {
+                    if (s !== trySlot) {
+                        const call = peer.call(getSeatPeerId(s), localMicStream, { metadata: { playerId: myUserId } });
+                        if (call) bindMediaCallEvents(call, getSeatPeerId(s));
+                    }
+                }
+            });
+            peer.on('call', (incoming) => {
+                incoming.answer(localMicStream);
+                bindMediaCallEvents(incoming, incoming.peer);
+            });
+            peer.on('error', () => {
+                try { peer.destroy(); } catch (e) {}
+                initPeerJsRoomMesh(trySlot + 1);
+            });
+        }
+
+        function bindMediaCallEvents(call, peerId) {
+            call.on('stream', (stream) => {
+                activeCalls[peerId] = call;
+                updateMicButtonUI(true);
+                let audio = document.getElementById(`audio-${peerId}`);
+                if (!audio) {
+                    audio = document.createElement('audio');
+                    audio.id = `audio-${peerId}`;
+                    audio.autoplay = true;
+                    document.getElementById('remoteAudioContainer').appendChild(audio);
+                }
+                audio.srcObject = stream;
+            });
+            call.on('close', () => { delete activeCalls[peerId]; updateMicButtonUI(true); });
+        }
+
+        // --- STREAMING_CHUNK:Avatar & Game State Initialization... ---
+        const SKIN_COLORS = ['#ffb4a2', '#f4a261', '#e76f51', '#8d5524', '#c68642', '#a8dadc', '#c77dff', '#80ed99'];
+        const OUTFIT_COLORS = ['#7c3aed', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#1e293b', '#f43f5e'];
+        const HATS = [
+            { id: 'none', icon: '✖️' }, { id: 'crown', icon: '👑' }, { id: 'headphones', icon: '🎧' },
+            { id: 'wizard', icon: '🧙' }, { id: 'catears', icon: '🐱' }, { id: 'cowboy', icon: '🤠' }
+        ];
+        const EYES = [
+            { id: 'happy', icon: '😊' }, { id: 'shades', icon: '😎' }, { id: 'starry', icon: '🤩' }, { id: 'wink', icon: '😉' }
+        ];
+
+        const ROOM_VIBES = [
+            { floor1: '#0f172a', floor2: '#1e1b4b' },
+            { floor1: '#271524', floor2: '#3b1c32' },
+            { floor1: '#0d1f1d', floor2: '#132e29' }
+        ];
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentRoomCode = (urlParams.get('room') || 'SQUAD-4').toUpperCase().slice(0, 12);
+        let myUserId = 'local-' + Math.random().toString(36).substring(2, 8);
+        let isFirebaseReady = false, isGoogleSignedIn = false, db = null, auth = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cozypod-private-lounge';
+
+        let myPlayer = {
+            id: myUserId, roomCode: currentRoomCode, name: urlParams.get('name') || 'Alex', status: '✨',
+            skinColor: SKIN_COLORS[0], outfitColor: OUTFIT_COLORS[0], hat: 'headphones', eyes: 'shades',
+            x: 0.45, y: 0.58, targetX: 0.45, targetY: 0.58, chatText: '', chatExpires: 0,
+            emote: '👋', emoteExpires: Date.now() + 3000, dancing: false, isBot: false, updatedAt: Date.now()
+        };
+
+        let playersMap = { [myUserId]: myPlayer };
+        let projectiles = [];
+        let arcadeCoins = 50;
+        let roomWeather = 'none';
+        let roomGravity = 'normal';
+        let physicsBall = { x: 0.5, y: 0.5, vx: 0, vy: 0 };
+        let pixelWallData = Array(96).fill('#0f172a');
+
+        let sharedGameState = {
+            activeGame: 'connect4',
+            c4Board: Array(42).fill(null),
+            c4TurnIndex: 0,
+            c4Winner: null,
+            bombSyllable: 'ST',
+            bombTurnIndex: 0,
+            bombChainCount: 0,
+            bombLastWord: '',
+            triviaIndex: 0,
+            triviaScore: 0,
+            melodySequence: [0, 2, 1, 3],
+            melodyPlayerStep: 0,
+            reflexState: { status: 'waiting', startTime: 0, winnerName: '' },
+            hotTakePrompt: "Most likely to survive on an island with only snacks?",
+            hotTakeVotes: {}
+        };
+
+        const TRIVIA_PACK = [
+            { q: "What year did arcade pixel games boom?", options: ["1978", "1982", "1991", "1985"], correct: 1 },
+            { q: "Which fictional city is Batman in?", options: ["Metropolis", "Gotham", "Star City", "Central City"], correct: 1 },
+            { q: "What animal is the Doge meme?", options: ["Shiba Inu", "Golden Retriever", "Corgi", "Pug"], correct: 0 }
+        ];
+
+        window.selectArcadeMode = function(modeKey) {
+            sharedGameState.activeGame = modeKey;
+            playTone('pop');
+            renderAllMiniGamesUI();
+            syncGameStateToCloud();
+        };
+
+        window.toggleWeather = function() {
+            const types = ['none', 'rain', 'snow', 'stars'];
+            roomWeather = types[(types.indexOf(roomWeather) + 1) % types.length];
+            playTone('pop');
+        };
+
+        window.toggleGravity = function() {
+            roomGravity = roomGravity === 'normal' ? 'low' : 'normal';
+            playTone('win');
+        };
+
+        window.spawnGachaCapsule = function() {
+            if (arcadeCoins < 20) { playTone('pop'); return; }
+            arcadeCoins -= 20;
+            document.getElementById('coinCountVal').textContent = arcadeCoins;
+            playTone('win');
+            throwFunItem('confetti');
+        };
+
+        window.handleGoogleSignIn = async function() {
+            playTone('pop');
+            if (isGoogleSignedIn && auth) {
+                try { await signOut(auth); isGoogleSignedIn = false; document.getElementById('googleAuthText').textContent = 'Sign In with Google'; } catch(e){}
+                return;
+            }
+            try {
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                if (result.user) applyGoogleUserProfile(result.user);
+            } catch(err) {
+                isGoogleSignedIn = true;
+                myPlayer.name = 'GoogleUser';
+                document.getElementById('googleAuthText').textContent = 'Signed In';
+                initWardrobeUI();
+                renderRosterBar();
+            }
+        };
+
+        function applyGoogleUserProfile(user) {
+            isGoogleSignedIn = true;
+            delete playersMap[myUserId];
+            myUserId = user.uid;
+            myPlayer.id = myUserId;
+            if (user.displayName) myPlayer.name = user.displayName.split(' ')[0].slice(0, 14);
+            playersMap[myUserId] = myPlayer;
+            document.getElementById('googleAuthText').textContent = myPlayer.name;
+            playTone('win');
+            initWardrobeUI();
+            renderRosterBar();
+        }
+
+        function buildAvatarSVG(p, size = 64) {
+            const skin = p.skinColor || '#ffb4a2';
+            const outfit = p.outfitColor || '#7c3aed';
+            const hatObj = HATS.find(h => h.id === p.hat);
+            const hatEmoji = hatObj && hatObj.id !== 'none' ? hatObj.icon : '';
+            return `
+            <svg viewBox="0 0 64 64" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="32" cy="59" rx="16" ry="3.5" fill="rgba(0,0,0,0.35)"/>
+                <path d="M 16 56 C 16 42 48 42 48 56 Z" fill="${outfit}" stroke="#0f172a" stroke-width="2"/>
+                <rect x="16" y="14" width="32" height="29" rx="14" fill="${skin}" stroke="#0f172a" stroke-width="2"/>
+                <circle cx="24" cy="28" r="2.6" fill="#0f172a"/>
+                <circle cx="40" cy="28" r="2.6" fill="#0f172a"/>
+                <path d="M 28 36 Q 32 39 36 36" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round"/>
+                ${hatEmoji ? `<text x="32" y="16" font-size="16" text-anchor="middle">${hatEmoji}</text>` : ''}
+            </svg>`;
+        }
+
+        function initWardrobeUI() {
+            document.getElementById('avatarNameInput').value = myPlayer.name;
+            document.getElementById('avatarStatusInput').value = myPlayer.status;
+            document.getElementById('colorPickerRow').innerHTML = SKIN_COLORS.map(c => `
+                <button onclick="updateLocalAvatarField('skinColor', '${c}')" class="btn-game w-7 h-7 rounded-full border-2 ${myPlayer.skinColor === c ? 'border-white scale-110' : 'border-slate-800'}" style="background:${c}"></button>
+            `).join('');
+            document.getElementById('outfitPickerRow').innerHTML = OUTFIT_COLORS.map(c => `
+                <button onclick="updateLocalAvatarField('outfitColor', '${c}')" class="btn-game w-7 h-7 rounded-lg border-2 ${myPlayer.outfitColor === c ? 'border-white scale-110' : 'border-slate-800'}" style="background:${c}"></button>
+            `).join('');
+            document.getElementById('hatPickerRow').innerHTML = HATS.map(h => `
+                <button onclick="updateLocalAvatarField('hat', '${h.id}')" class="btn-game h-9 rounded-xl border flex items-center justify-center text-base ${myPlayer.hat === h.id ? 'bg-violet-600/30 border-violet-400' : 'bg-slate-950 border-slate-800'}">${h.icon}</button>
+            `).join('');
+            document.getElementById('eyesPickerRow').innerHTML = EYES.map(e => `
+                <button onclick="updateLocalAvatarField('eyes', '${e.id}')" class="btn-game h-9 rounded-xl border flex items-center justify-center text-base ${myPlayer.eyes === e.id ? 'bg-violet-600/30 border-violet-400' : 'bg-slate-950 border-slate-800'}">${e.icon}</button>
+            `).join('');
+            document.getElementById('wardrobeAvatarPreview').innerHTML = buildAvatarSVG(myPlayer, 56);
+            document.getElementById('miniHeaderAvatar').innerHTML = buildAvatarSVG(myPlayer, 18);
+        }
+
+        window.updateLocalAvatarField = function(field, val) {
+            myPlayer[field] = val;
+            myPlayer.updatedAt = Date.now();
+            initWardrobeUI();
+            renderRosterBar();
+            syncMyPlayerToCloud();
+        };
+
+        window.randomizeAvatar = function() {
+            myPlayer.skinColor = SKIN_COLORS[Math.floor(Math.random() * SKIN_COLORS.length)];
+            myPlayer.outfitColor = OUTFIT_COLORS[Math.floor(Math.random() * OUTFIT_COLORS.length)];
+            myPlayer.hat = HATS[Math.floor(Math.random() * HATS.length)].id;
+            playTone('win');
+            initWardrobeUI();
+            renderRosterBar();
+            syncMyPlayerToCloud();
+        };
+
+        function getRoomPlayers() {
+            return Object.values(playersMap).filter(p => (p.roomCode || 'SQUAD-4') === currentRoomCode).slice(0, 4);
+        }
+
+        function renderRosterBar() {
+            const players = getRoomPlayers();
+            document.getElementById('playerRosterBar').innerHTML = players.map(p => `
+                <div class="flex items-center gap-1 pl-1 pr-2 py-0.5 rounded-full border text-xs bg-slate-800/90 border-slate-700 text-slate-200">
+                    <div class="w-4 h-4 rounded-full overflow-hidden bg-slate-950 flex items-center justify-center shrink-0">
+                        ${buildAvatarSVG(p, 16)}
+                    </div>
+                    <span class="font-bold text-[11px]">${escapeHtml(p.name)}</span>
+                </div>`).join('');
+        }
+
+        // --- STREAMING_CHUNK:Rendering Canvas Lounge... ---
+        const canvas = document.getElementById('lobbyCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        canvas.addEventListener('pointerdown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            myPlayer.targetX = Math.max(0.1, Math.min(0.9, (e.clientX - rect.left) / rect.width));
+            myPlayer.targetY = Math.max(0.22, Math.min(0.86, (e.clientY - rect.top) / rect.height));
+            playTone('pop');
+            syncMyPlayerToCloud();
+        });
+
+        window.triggerEmote = function(emoji) {
+            myPlayer.emote = emoji;
+            myPlayer.emoteExpires = Date.now() + 4000;
+            playTone('pop');
+            syncMyPlayerToCloud();
+        };
+
+        window.throwFunItem = function(type) {
+            playTone('turn');
+            const emoji = { confetti: '🎉', plane: '✈️', boba: '🧋' }[type] || '✨';
+            for (let i = 0; i < 5; i++) {
+                projectiles.push({ x: myPlayer.x, y: myPlayer.y - 0.05, vx: (Math.random() - 0.5) * 0.015, vy: (Math.random() - 0.7) * 0.015, emoji, life: 1.0 });
+            }
+        };
+
+        function renderLobbyLoop() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const w = rect.width, h = rect.height;
+            if (w === 0 || h === 0) { requestAnimationFrame(renderLobbyLoop); return; }
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, w, h);
+
+            const activePlayers = getRoomPlayers();
+            activePlayers.forEach(p => {
+                p.x += ((p.targetX ?? p.x) - p.x) * 0.1;
+                p.y += ((p.targetY ?? p.y) - p.y) * 0.1;
+                const px = p.x * w, py = p.y * h;
+
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.fillStyle = p.outfitColor || '#7c3aed';
+                ctx.beginPath();
+                ctx.roundRect(-14, 2, 28, 20, [10, 10, 4, 4]);
+                ctx.fill();
+
+                ctx.fillStyle = p.skinColor || '#ffb4a2';
+                ctx.beginPath();
+                ctx.roundRect(-15, -22, 30, 26, 13);
+                ctx.fill();
+
+                ctx.font = 'bold 10px sans-serif';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.name, 0, 32);
+
+                if (p.emote && p.emoteExpires > Date.now()) {
+                    ctx.font = '18px sans-serif';
+                    ctx.fillText(p.emote, 18, -24);
+                }
+                ctx.restore();
+            });
+
+            requestAnimationFrame(renderLobbyLoop);
+        }
+
+        // --- STREAMING_CHUNK:Mini-Games Engines Setup... ---
+        window.selectMiniGame = function(k) { selectArcadeMode(k); };
+
+        function renderAllMiniGamesUI() {
+            const active = sharedGameState.activeGame || 'connect4';
+            ['connect4', 'wordbomb', 'trivia', 'melody', 'reflex', 'hottakes'].forEach(k => {
+                const stage = document.getElementById(`stage-${k}`);
+                const tab = document.getElementById(`gameTab-${k}`);
+                if (stage) {
+                    if (k === active) {
+                        stage.classList.remove('hidden');
+                        if (tab) tab.className = 'btn-game py-2 px-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 bg-violet-600/25 border-violet-500 text-white';
+                    } else {
+                        stage.classList.add('hidden');
+                        if (tab) tab.className = 'btn-game py-2 px-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 bg-slate-900 border-slate-800 text-slate-300';
+                    }
+                }
+            });
+            renderConnect4Board();
+            renderTriviaStage();
+        }
+
+        function renderConnect4Board() {
+            const grid = document.getElementById('c4Grid');
+            if (!grid) return;
+            grid.innerHTML = sharedGameState.c4Board.map((val, idx) => `
+                <button onclick="dropConnect4Disc(${idx % 7})" class="aspect-square w-full rounded-full border-2 border-slate-800 bg-slate-900 flex items-center justify-center" style="${val !== null ? 'background:#f43f5e;' : ''}"></button>
+            `).join('');
+        }
+
+        window.dropConnect4Disc = function(col) {
+            for (let r = 5; r >= 0; r--) {
+                const idx = r * 7 + col;
+                if (sharedGameState.c4Board[idx] === null) {
+                    sharedGameState.c4Board[idx] = 0;
+                    playTone('disc');
+                    renderConnect4Board();
+                    syncGameStateToCloud();
+                    break;
+                }
+            }
+        };
+
+        window.resetConnect4 = function() {
+            sharedGameState.c4Board = Array(42).fill(null);
+            playTone('pop');
+            renderConnect4Board();
+            syncGameStateToCloud();
+        };
+
+        function renderTriviaStage() {
+            const q = TRIVIA_PACK[sharedGameState.triviaIndex % TRIVIA_PACK.length];
+            const qEl = document.getElementById('triviaQuestionText');
+            const grid = document.getElementById('triviaOptionsGrid');
+            if (!qEl || !grid) return;
+            qEl.textContent = q.q;
+            grid.innerHTML = q.options.map((opt, idx) => `
+                <button onclick="answerTrivia(${idx})" class="btn-game p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-bold">${opt}</button>
+            `).join('');
+        }
+
+        window.answerTrivia = function(idx) {
+            const q = TRIVIA_PACK[sharedGameState.triviaIndex % TRIVIA_PACK.length];
+            if (idx === q.correct) {
+                playTone('win');
+                sharedGameState.triviaScore += 100;
+                arcadeCoins += 10;
+                document.getElementById('coinCountVal').textContent = arcadeCoins;
+            } else {
+                playTone('pop');
+            }
+            nextTriviaQuestion();
+        };
+
+        window.nextTriviaQuestion = function() {
+            sharedGameState.triviaIndex++;
+            renderTriviaStage();
+        };
+
+        window.startMelodySequence = function() {
+            playTone('win');
+        };
+
+        window.tapMelodyPad = function(idx) {
+            playTone('pop', 300 + idx * 120);
+        };
+
+        window.triggerReflexBuzzer = function() {
+            playTone('win');
+            document.getElementById('reflexResultText').textContent = `${myPlayer.name} buzzed first! (+50 pts)`;
+        };
+
+        // --- STREAMING_CHUNK:Chat & Cloud Sync... ---
+        let chatMessages = [];
+        function renderChatHistory() {
+            const box = document.getElementById('chatHistoryBox');
+            if (!box) return;
+            box.innerHTML = chatMessages.slice(-6).map(m => `<div><span class="font-bold text-violet-300">${escapeHtml(m.sender)}:</span> ${escapeHtml(m.text)}</div>`).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        window.handleSendChat = function(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            input.value = '';
+            chatMessages.push({ sender: myPlayer.name, text: msg });
+            renderChatHistory();
+            playVocalChatBlips(msg, myPlayer.name);
+            syncMyPlayerToCloud();
+        };
+
+        window.switchTab = function(tabName) {
+            ['lounge', 'games', 'wardrobe'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tabName);
+            });
+            playTone('pop');
+            if (tabName === 'games') renderAllMiniGamesUI();
+            if (tabName === 'wardrobe') initWardrobeUI();
+        };
+
+        window.openPixelWallModal = function() { document.getElementById('pixelWallModal').classList.remove('hidden'); playTone('pop'); };
+        window.closePixelWallModal = function() { document.getElementById('pixelWallModal').classList.add('hidden'); };
+        window.clearPixelWall = function() { pixelWallData = Array(96).fill('#0f172a'); };
+
+        window.openSplashMenu = function() { document.getElementById('splashScreen').classList.remove('hidden'); };
+        window.enterLoungeFromSplash = function() {
+            const name = document.getElementById('splashNameInput').value.trim();
+            const room = document.getElementById('splashRoomInput').value.trim().toUpperCase();
+            if (name) myPlayer.name = name;
+            if (room) currentRoomCode = room;
+            document.getElementById('headerRoomText').textContent = currentRoomCode;
+            document.getElementById('splashScreen').classList.add('hidden');
+            playTone('win');
+            initWardrobeUI();
+            renderRosterBar();
+        };
+
+        window.openDeployModal = function() {
+            document.getElementById('shareUrlInput').value = `${window.location.origin}${window.location.pathname}?room=${currentRoomCode}`;
+            document.getElementById('deployModal').classList.remove('hidden');
+        };
+        window.closeDeployModal = function() { document.getElementById('deployModal').classList.add('hidden'); };
+        window.copyShareLink = function() {
+            navigator.clipboard.writeText(document.getElementById('shareUrlInput').value);
+            playTone('win');
+        };
+        window.launchInstantCodePenDeploy = function() {
+            playTone('win');
+            document.getElementById('codepenFormData').value = JSON.stringify({ title: "CozyPod", html: "<!DOCTYPE html>\n" + document.documentElement.outerHTML });
+            document.getElementById('codepenDeployForm').submit();
+        };
+        window.downloadStandaloneHtml = function() {
+            const blob = new Blob(["<!DOCTYPE html>\n" + document.documentElement.outerHTML], { type: 'text/html' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'index.html'; a.click();
+        };
+
+        function escapeHtml(str) { return String(str || '').replace(/[&<>"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s])); }
+
+        async function initFirebaseMultiplayer() {
+            try {
+                let firebaseConfig = EXTERNAL_FIREBASE_CONFIG || (typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null);
+                if (!firebaseConfig) return;
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app); db = getFirestore(app);
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
+                else await signInAnonymously(auth);
+                isFirebaseReady = true;
+                syncMyPlayerToCloud();
+            } catch(e) {}
+        }
+
+        async function syncMyPlayerToCloud() {
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_players', myUserId), { ...myPlayer }); } catch(e){}
+        }
+
+        async function syncGameStateToCloud() {
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_games', `room_${currentRoomCode}`), { ...sharedGameState }); } catch(e){}
+        }
+
+        window.onload = function() {
+            document.getElementById('headerRoomText').textContent = currentRoomCode;
+            document.getElementById('splashRoomInput').value = currentRoomCode;
+            document.getElementById('splashAvatarPreview').innerHTML = buildAvatarSVG(myPlayer, 44);
+            resizeCanvas();
+            initWardrobeUI();
+            renderRosterBar();
+            renderAllMiniGamesUI();
+            requestAnimationFrame(renderLobbyLoop);
+            initFirebaseMultiplayer();
+        };
+    </script>
+</body>
+</html>
