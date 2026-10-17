@@ -487,7 +487,15 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const EXTERNAL_FIREBASE_CONFIG = null;
+        const EXTERNAL_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDJffr2GYu8Q22oZ4bvnsfL1UVFvLQU35k",
+            authDomain: "spatial-canvas-a9726.firebaseapp.com",
+            databaseURL: "https://spatial-canvas-a9726-default-rtdb.firebaseio.com",
+            projectId: "spatial-canvas-a9726",
+            storageBucket: "spatial-canvas-a9726.firebasestorage.app",
+            messagingSenderId: "204810238888",
+            appId: "1:204810238888:web:7e0164fed39f09dcc03b9d"
+        };
 
         // --- STREAMING_CHUNK:Initializing Procedural Audio Engine (SFX & BGM)... ---
         let soundEnabled = true;
