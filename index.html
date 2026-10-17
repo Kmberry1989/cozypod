@@ -91,7 +91,7 @@
         <div class="w-full max-w-xs space-y-2.5 mb-5">
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex items-center gap-3">
                 <div id="splashAvatarPreview" class="w-11 h-11 rounded-xl bg-slate-950 border border-violet-500/40 flex items-center justify-center shrink-0"></div>
-                <input id="splashNameInput" type="text" maxlength="14" placeholder="Your Name" value="Alex"
+                <input id="splashNameInput" type="text" maxlength="14" placeholder="Your Name"
                     class="flex-1 bg-slate-950 border border-slate-700 focus:border-violet-500 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none">
             </div>
 
@@ -601,7 +601,7 @@
             } catch (e) {}
         }
 
-        function playVocalChatBlips(text, speakerName = 'Alex') {
+        function playVocalChatBlips(text, speakerName = '') {
             if (!soundEnabled) return;
             try {
                 ensureAudioContext();
@@ -819,7 +819,7 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'cozypod-private-lounge';
 
         let myPlayer = {
-            id: myUserId, roomCode: currentRoomCode, name: urlParams.get('name') || 'Alex', status: '✨',
+            id: myUserId, roomCode: currentRoomCode, name: urlParams.get('name') || '', status: '✨',
             species: 'podling', features: { body: 'mint', sprout: 'leaf', face: 'happy' },
             skinColor: SKIN_COLORS[0], outfitColor: OUTFIT_COLORS[0], hat: 'headphones', eyes: 'shades',
             x: 0.45, y: 0.58, targetX: 0.45, targetY: 0.58, chatText: '', chatExpires: 0,
@@ -895,11 +895,7 @@
                 const result = await signInWithPopup(auth, provider);
                 if (result.user) applyGoogleUserProfile(result.user);
             } catch(err) {
-                isGoogleSignedIn = true;
-                myPlayer.name = 'GoogleUser';
-                document.getElementById('googleAuthText').textContent = 'Signed In';
-                initWardrobeUI();
-                renderRosterBar();
+                document.getElementById('googleAuthText').textContent = 'Sign In with Google';
             }
         };
 
@@ -1279,7 +1275,8 @@
         window.enterLoungeFromSplash = function() {
             const name = document.getElementById('splashNameInput').value.trim();
             const room = document.getElementById('splashRoomInput').value.trim().toUpperCase();
-            if (name) myPlayer.name = name;
+            if (!name) { playTone('pop'); document.getElementById('splashNameInput').focus(); return; }
+            myPlayer.name = name;
             if (room) currentRoomCode = room;
             persistAll();
             document.getElementById('headerRoomText').textContent = currentRoomCode;
