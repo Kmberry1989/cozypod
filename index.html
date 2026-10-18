@@ -303,6 +303,7 @@
                             <span id="bombUsedCount" class="text-[10px] text-amber-400 font-bold">0</span>
                         </div>
                         <p id="bombLastWordText" class="text-xs text-emerald-400 font-bold h-4"></p>
+                        <div id="bombStatusLine" class="text-[11px] font-bold text-slate-300 text-center px-2 truncate"></div>
                     </div>
                     <form onsubmit="submitBombWord(event)" class="flex gap-1.5 shrink-0">
                         <input type="text" id="bombWordInput" placeholder="Word..." autocomplete="off"
@@ -332,10 +333,11 @@
                 <div id="stage-melody" class="hidden flex-1 flex flex-col justify-between overflow-hidden gap-2">
                     <div class="flex items-center justify-between shrink-0">
                         <span id="melodyScoreText" class="text-xs font-bold text-amber-400">Sequence: 0</span>
-                        <button onclick="startMelodySequence()" class="btn-game px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
-                            Play Tone
+                        <button id="melodyActionBtn" onclick="startMelodySequence()" class="btn-game px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
+                            ▶ Start
                         </button>
                     </div>
+                    <div id="melodyStatusLine" class="text-[11px] font-bold text-slate-300 text-center truncate shrink-0"></div>
                     <div class="flex-1 grid grid-cols-2 gap-2.5 content-center max-w-[260px] mx-auto w-full">
                         <button onclick="tapMelodyPad(0)" id="melodyPad-0" class="btn-game aspect-square rounded-2xl bg-violet-600/30 border-2 border-violet-500/60 flex items-center justify-center text-2xl">🎹</button>
                         <button onclick="tapMelodyPad(1)" id="melodyPad-1" class="btn-game aspect-square rounded-2xl bg-fuchsia-600/30 border-2 border-fuchsia-500/60 flex items-center justify-center text-2xl">🎸</button>
@@ -347,6 +349,7 @@
                 <!-- MINI-GAME: REFLEX SHOWDOWN -->
                 <div id="stage-reflex" class="hidden flex-1 flex flex-col items-center justify-between p-4 overflow-hidden text-center">
                     <div id="reflexStatusHeader" class="font-display font-bold text-sm text-amber-400">Ready for the Signal?</div>
+                    <button id="reflexStartBtn" onclick="startReflexRound()" class="btn-game px-4 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">Start Round</button>
                     <button onclick="triggerReflexBuzzer()" id="reflexBuzzerBtn" class="btn-game w-32 h-32 rounded-full bg-gradient-to-br from-red-600 to-orange-600 border-4 border-amber-400/80 shadow-2xl flex items-center justify-center text-3xl font-extrabold text-white">
                         BUZZ
                     </button>
@@ -971,6 +974,11 @@
             htPhase: 'voting',
             htUpdatedAt: 0,
             roomPlayers: [],
+            bmbSyllable: 'ST', bmbTurnUid: null, bmbUsedWords: [], bmbScores: {}, bmbNames: {}, bmbStrikes: {},
+            bmbLastWord: null, bmbOrder: [], bmbPhase: 'playing', bmbUpdatedAt: 0,
+            mldSequence: [], mldTurnUid: null, mldLives: {}, mldNames: {}, mldProgress: 0,
+            mldOrder: [], mldPhase: 'playing', mldSeqId: 0, mldUpdatedAt: 0,
+            rfxPhase: 'idle', rfxWinner: null, rfxFouls: [], rfxRound: 0, rfxGoAt: 0, rfxUpdatedAt: 0,
             melodySequence: [0, 2, 1, 3],
             melodyPlayerStep: 0,
             reflexState: { status: 'waiting', startTime: 0, winnerName: '' },
@@ -1011,7 +1019,7 @@
             playTone('pop');
             renderAllMiniGamesUI();
             if (modeKey === 'connect4') claimDrop4Seat();
-            if (modeKey === 'hottakes') heartbeatRoomPresence();
+            if (modeKey === 'hottakes' || modeKey === 'wordbomb' || modeKey === 'melody' || modeKey === 'reflex') heartbeatRoomPresence();
             syncGameStateToCloud();
         };
 
@@ -1316,6 +1324,9 @@
             renderC4TurnBanner();
             renderTriviaStage();
             renderHotTakes();
+            renderBomb();
+            renderMelody();
+            renderReflex();
         }
 
         // ===== DROP4 MULTIPLAYER ENGINE =====
@@ -1323,6 +1334,8 @@
         const C4_BOT_UID = '__podbot__';
         let c4Announced = '__none__';
         let botMoveToken = null;
+        let bmbAwardedRound = -1;
+        let mldAwardedRound = -1;
 
         function mySeatUid() {
             if (isFirebaseReady && auth && auth.currentUser) return auth.currentUser.uid;
@@ -1615,7 +1628,10 @@
         // --- remote state in ---
         const ROOM_SYNC_KEYS = ['c4Board', 'c4TurnIndex', 'c4Winner', 'c4Players', 'c4WinCells', 'c4Starter', 'c4BotOwner', 'c4UpdatedAt',
             'trvIndex', 'trvPhase', 'trvBuzz', 'trvScores', 'trvNames', 'trvUpdatedAt',
-            'htPromptIndex', 'htVotes', 'htPhase', 'htUpdatedAt', 'roomPlayers'];
+            'htPromptIndex', 'htVotes', 'htPhase', 'htUpdatedAt', 'roomPlayers',
+            'bmbSyllable', 'bmbTurnUid', 'bmbUsedWords', 'bmbScores', 'bmbNames', 'bmbStrikes', 'bmbLastWord', 'bmbOrder', 'bmbPhase', 'bmbRound', 'bmbLastWinner', 'bmbUpdatedAt',
+            'mldSequence', 'mldTurnUid', 'mldLives', 'mldNames', 'mldProgress', 'mldOrder', 'mldPhase', 'mldSeqId', 'mldRound', 'mldLastWinner', 'mldUpdatedAt',
+            'rfxPhase', 'rfxWinner', 'rfxFouls', 'rfxRound', 'rfxGoAt', 'rfxUpdatedAt'];
         function applyRemoteGameState(d) {
             if (!d) return;
             const s = sharedGameState;
@@ -1626,12 +1642,26 @@
             renderC4TurnBanner();
             renderTriviaStage();
             renderHotTakes();
+            renderBomb();
+            renderMelody();
+            renderReflex();
+            maybePlayMelody();
+            scheduleReflexGo();
             const w = s.c4Winner;
             if (w && w !== c4Announced) {
                 c4Announced = w;
                 playTone(w === 'draw' ? 'pop' : 'win');
             }
             if (!w) c4Announced = '__none__';
+            const meUidNow = mySeatUid();
+            if (s.bmbLastWinner && s.bmbLastWinner === meUidNow && (s.bmbRound || 0) !== bmbAwardedRound) {
+                bmbAwardedRound = s.bmbRound || 0;
+                onPartyRoundWin(50, 30);
+            }
+            if (s.mldLastWinner && s.mldLastWinner === meUidNow && (s.mldRound || 0) !== mldAwardedRound) {
+                mldAwardedRound = s.mldRound || 0;
+                onPartyRoundWin(50, 30);
+            }
             maybeBotMove();
         }
 
@@ -1854,8 +1884,11 @@
         };
 
         // ===== ROOM PRESENCE (powers vote candidates + future games) =====
+        let lastHeartbeatAt = 0;
         async function heartbeatRoomPresence() {
             if (!isFirebaseReady || !auth?.currentUser) return;
+            if (Date.now() - lastHeartbeatAt < 10000) return;
+            lastHeartbeatAt = Date.now();
             const myUid = mySeatUid();
             try {
                 await runTransaction(db, async (tx) => {
@@ -1871,17 +1904,418 @@
             } catch (e) {}
         }
 
-        window.startMelodySequence = function() {
+        // ===== SHARED HELPERS FOR THE PARTY GAMES =====
+        function freshRoomUids(d) {
+            const now = Date.now();
+            const list = (d && d.roomPlayers) || sharedGameState.roomPlayers || [];
+            return list.filter(p => now - (p.lastSeen || 0) < 5 * 60 * 1000).map(p => p.uid);
+        }
+        function nextUidTurn(activeUids, currentUid) {
+            if (!activeUids.length) return null;
+            const i = activeUids.indexOf(currentUid);
+            return activeUids[(i + 1) % activeUids.length];
+        }
+        function roomPlayerName(uid) {
+            const s = sharedGameState;
+            for (const m of [s.bmbNames, s.mldNames, s.trvNames]) if (m && m[uid]) return m[uid];
+            const p = (s.roomPlayers || []).find(x => x.uid === uid);
+            return p ? p.name : '???';
+        }
+
+        // ===== SYLLABLE BOMB: MULTIPLAYER =====
+        const BOMB_SYLLABLES = ['ST','CH','TH','SH','ING','ER','AN','AR','EN','AT','IN','ON','TER','ATE','ION','OUS','ENT','EST','OCK','UMP','ASH','END','ILL','AND'];
+        function activeBombPlayers(d) {
+            const strikes = d.bmbStrikes || {};
+            const fresh = freshRoomUids(d);
+            return (d.bmbOrder || []).filter(uid => fresh.includes(uid) && (strikes[uid] || 0) < 3);
+        }
+        function newBombRound(order, scores, starterUid) {
+            let syl = BOMB_SYLLABLES[Math.floor(Math.random() * BOMB_SYLLABLES.length)];
+            const ord = order.slice();
+            if (starterUid) {
+                const si = ord.indexOf(starterUid);
+                if (si > 0) { ord.splice(si, 1); ord.unshift(starterUid); }
+                else if (si === -1) ord.unshift(starterUid);
+            }
+            return {
+                bmbSyllable: syl, bmbUsedWords: [], bmbStrikes: {}, bmbLastWord: null,
+                bmbOrder: ord, bmbTurnUid: ord[0] || null, bmbPhase: 'playing',
+                bmbScores: scores || {}, bmbUpdatedAt: Date.now()
+            };
+        }
+        function renderBomb() {
+            const sylEl = document.getElementById('bombSyllableText');
+            const usedEl = document.getElementById('bombUsedCount');
+            const lastEl = document.getElementById('bombLastWordText');
+            const badgeEl = document.getElementById('bombTurnBadge');
+            const statusEl = document.getElementById('bombStatusLine');
+            if (!sylEl) return;
+            const s = sharedGameState;
+            const online = isFirebaseReady && auth && auth.currentUser;
+            sylEl.textContent = online ? (s.bmbSyllable || 'ST') : (s.bombSyllable || 'ST');
+            if (usedEl) usedEl.textContent = online ? (s.bmbUsedWords || []).length : (s.bombChainCount || 0);
+            if (lastEl) lastEl.textContent = online && s.bmbLastWord ? `${s.bmbLastWord.name}: ${s.bmbLastWord.word}` : (online ? '' : (s.bombLastWord || ''));
+            if (!online) {
+                if (badgeEl) badgeEl.textContent = 'Solo';
+                if (statusEl) statusEl.textContent = '';
+                return;
+            }
+            const myUid = mySeatUid();
+            if (badgeEl) {
+                badgeEl.textContent = !s.bmbTurnUid ? 'Tap ⟳ to start'
+                    : s.bmbTurnUid === myUid ? '💣 Your turn!' : `💣 ${roomPlayerName(s.bmbTurnUid)}'s turn`;
+            }
+            if (statusEl) {
+                const scores = s.bmbScores || {};
+                const strikes = s.bmbStrikes || {};
+                const parts = Object.keys(scores).map(uid => {
+                    const st = strikes[uid] || 0;
+                    return `${roomPlayerName(uid)} ${scores[uid]}${st ? ` (${'✗'.repeat(st)})` : ''}`;
+                });
+                statusEl.textContent = parts.length ? parts.join(' · ') : 'First to 3 strikes is out — last one standing wins the round!';
+            }
+        }
+        function soloBombWord(word) {
+            const syl = (sharedGameState.bombSyllable || 'ST').toLowerCase();
+            if (word.length >= 3 && word.includes(syl)) {
+                playTone('win'); awardXP(2);
+                sharedGameState.bombChainCount = (sharedGameState.bombChainCount || 0) + 1;
+                sharedGameState.bombLastWord = word;
+            } else { playTone('pop'); awardXP(1); }
+            renderBomb();
+        }
+        window.startNewWordBombRound = async function() {
+            playTone('pop');
+            if (!isFirebaseReady || !auth?.currentUser) {
+                sharedGameState.bombSyllable = BOMB_SYLLABLES[Math.floor(Math.random() * BOMB_SYLLABLES.length)];
+                sharedGameState.bombChainCount = 0; sharedGameState.bombLastWord = '';
+                renderBomb(); return;
+            }
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    let order = freshRoomUids(d);
+                    if (!order.length) order = [mySeatUid()];
+                    const scores = d.bmbScores || {};
+                    tx.set(ref, { ...newBombRound(order, scores), bmbNames: { ...(d.bmbNames || {}), [mySeatUid()]: (myPlayer.name || 'Player').slice(0, 14) } }, { merge: true });
+                });
+            } catch (e) {}
+        };
+        window.submitBombWord = async function(e) {
+            e.preventDefault();
+            const input = document.getElementById('bombWordInput');
+            const word = (input.value || '').trim().toLowerCase();
+            input.value = '';
+            if (!word) return;
+            if (!isFirebaseReady || !auth?.currentUser) { soloBombWord(word); return; }
+            const myUid = mySeatUid();
+            const myName = (myPlayer.name || 'Player').slice(0, 14);
+            try {
+                const result = await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    if ((d.bmbPhase || 'playing') !== 'playing' || d.bmbTurnUid !== myUid) return { ok: false };
+                    const syl = (d.bmbSyllable || 'ST').toLowerCase();
+                    const used = d.bmbUsedWords || [];
+                    const names = { ...(d.bmbNames || {}) }; names[myUid] = myName;
+                    const scores = { ...(d.bmbScores || {}) };
+                    const strikes = { ...(d.bmbStrikes || {}) };
+                    const now = Date.now();
+                    const valid = word.length >= 3 && word.includes(syl) && !used.includes(word);
+                    const freshOrder = freshRoomUids(d);
+                    let update;
+                    if (valid) {
+                        scores[myUid] = (scores[myUid] || 0) + 10;
+                        const active = activeBombPlayers({ ...d, bmbStrikes: strikes });
+                        if (active.length <= 1) {
+                            scores[myUid] = (scores[myUid] || 0) + 50;
+                            const order = freshOrder.length ? freshOrder : [myUid];
+                            update = { ...newBombRound(order, scores, myUid), bmbNames: names,
+                                bmbRound: (d.bmbRound || 0) + 1, bmbLastWinner: myUid };
+                        } else {
+                            update = {
+                                bmbUsedWords: [...used, word], bmbScores: scores, bmbNames: names,
+                                bmbLastWord: { word, name: myName },
+                                bmbTurnUid: nextUidTurn(active, myUid), bmbUpdatedAt: now
+                            };
+                        }
+                    } else {
+                        strikes[myUid] = (strikes[myUid] || 0) + 1;
+                        const active = activeBombPlayers({ ...d, bmbStrikes: strikes });
+                        if (active.length === 1) {
+                            const w = active[0];
+                            scores[w] = (scores[w] || 0) + 50;
+                            const order = freshOrder.length ? freshOrder : [w];
+                            update = { ...newBombRound(order, scores, w), bmbNames: names,
+                                bmbRound: (d.bmbRound || 0) + 1, bmbLastWinner: w };
+                        } else if (active.length === 0) {
+                            const order = freshOrder.length ? freshOrder : [myUid];
+                            update = { ...newBombRound(order, scores, myUid), bmbNames: names,
+                                bmbRound: (d.bmbRound || 0) + 1, bmbLastWinner: null };
+                        } else {
+                            update = {
+                                bmbStrikes: strikes, bmbNames: names,
+                                bmbLastWord: { word: word + ' ✗', name: myName },
+                                bmbTurnUid: nextUidTurn(active, myUid), bmbUpdatedAt: now
+                            };
+                        }
+                    }
+                    tx.set(ref, update, { merge: true });
+                    return { ok: true, valid };
+                });
+                if (result && result.ok) {
+                    if (result.valid) { playTone('win'); awardXP(5); }
+                    else { playTone('pop'); awardXP(1); }
+                }
+            } catch (e) {}
+        };
+        function onPartyRoundWin(coins, xp) {
             playTone('win');
+            awardXP(xp);
+            arcadeCoins += coins; persistCoins();
+            const cc = document.getElementById('coinCountVal');
+            if (cc) cc.textContent = arcadeCoins;
+        }
+
+        // ===== MELODY RELAY: MULTIPLAYER =====
+        let mldLastPlayedSeqId = -1;
+        function activeMelodyPlayers(d) {
+            const lives = d.mldLives || {};
+            const fresh = freshRoomUids(d);
+            return (d.mldOrder || []).filter(uid => fresh.includes(uid) && (lives[uid] === undefined || lives[uid] > 0));
+        }
+        function playMelodySequence() {
+            const seq = sharedGameState.mldSequence || [];
+            seq.forEach((pad, i) => {
+                setTimeout(() => {
+                    const el = document.getElementById('melodyPad-' + pad);
+                    if (el) {
+                        el.classList.add('ring-4', 'ring-white', 'scale-105');
+                        setTimeout(() => el.classList.remove('ring-4', 'ring-white', 'scale-105'), 320);
+                    }
+                    playTone('pop', 300 + pad * 120);
+                }, 200 + i * 450);
+            });
+        }
+        function maybePlayMelody() {
+            const id = sharedGameState.mldSeqId || 0;
+            if (id === mldLastPlayedSeqId) return;
+            mldLastPlayedSeqId = id;
+            if ((sharedGameState.mldSequence || []).length) playMelodySequence();
+        }
+        function renderMelody() {
+            const scoreEl = document.getElementById('melodyScoreText');
+            const statusEl = document.getElementById('melodyStatusLine');
+            const actionBtn = document.getElementById('melodyActionBtn');
+            if (!scoreEl) return;
+            const s = sharedGameState;
+            const online = isFirebaseReady && auth && auth.currentUser;
+            const seq = online ? (s.mldSequence || []) : (s.melodySequence || []);
+            scoreEl.textContent = 'Sequence: ' + seq.length;
+            if (actionBtn) actionBtn.textContent = online && !s.mldTurnUid ? '▶ Start' : '🔁 Replay';
+            if (!statusEl) return;
+            if (!online) { statusEl.textContent = ''; return; }
+            const myUid = mySeatUid();
+            const lives = s.mldLives || {};
+            if (!s.mldTurnUid) { statusEl.textContent = 'Tap ▶ Start to begin the relay!'; return; }
+            const lifeStr = Object.keys(lives).map(uid => `${roomPlayerName(uid)} ${'❤'.repeat(Math.max(0, lives[uid]))}`).join(' · ');
+            const turnStr = s.mldTurnUid === myUid ? '🎹 Your turn — repeat, then add one!' : `🎹 ${roomPlayerName(s.mldTurnUid)} is playing…`;
+            statusEl.textContent = turnStr + (lifeStr ? '   ·   ' + lifeStr : '');
+        }
+        window.startMelodySequence = async function() {
+            if (!isFirebaseReady || !auth?.currentUser) { playMelodySequence(); return; }
+            if (sharedGameState.mldTurnUid) { playMelodySequence(); return; }
+            playTone('pop');
+            const myUid = mySeatUid();
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    if (d.mldTurnUid) return;
+                    let order = freshRoomUids(d);
+                    if (!order.length) order = [myUid];
+                    const lives = {}; order.forEach(u => lives[u] = 2);
+                    const names = { ...(d.mldNames || {}) }; names[myUid] = (myPlayer.name || 'Player').slice(0, 14);
+                    tx.set(ref, {
+                        mldSequence: [Math.floor(Math.random() * 4)], mldTurnUid: order[0], mldLives: lives,
+                        mldNames: names, mldProgress: 0, mldOrder: order, mldPhase: 'playing',
+                        mldSeqId: (d.mldSeqId || 0) + 1, mldUpdatedAt: Date.now()
+                    }, { merge: true });
+                });
+            } catch (e) {}
+        };
+        window.tapMelodyPad = async function(idx) {
+            playTone('pop', 300 + idx * 120);
+            if (!isFirebaseReady || !auth?.currentUser) { awardXP(1); return; }
+            const myUid = mySeatUid();
+            const myName = (myPlayer.name || 'Player').slice(0, 14);
+            try {
+                const result = await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    if ((d.mldPhase || 'playing') !== 'playing' || d.mldTurnUid !== myUid) return { ok: false };
+                    const seq = d.mldSequence || [];
+                    const progress = d.mldProgress || 0;
+                    const lives = { ...(d.mldLives || {}) };
+                    const names = { ...(d.mldNames || {}) }; names[myUid] = myName;
+                    const now = Date.now();
+                    if (progress < seq.length) {
+                        if (idx === seq[progress]) {
+                            tx.set(ref, { mldProgress: progress + 1, mldNames: names, mldUpdatedAt: now }, { merge: true });
+                            return { ok: true, repeat: true };
+                        }
+                        lives[myUid] = (lives[myUid] === undefined ? 2 : lives[myUid]) - 1;
+                        const remaining = activeMelodyPlayers({ ...d, mldLives: lives });
+                        if (remaining.length <= 1 && remaining[0]) {
+                            const w = remaining[0];
+                            let order = freshRoomUids(d);
+                            if (!order.length) order = [w];
+                            order = order.filter(u => u !== w); order.unshift(w);
+                            const wlives = {}; order.forEach(u => wlives[u] = 2);
+                            tx.set(ref, {
+                                mldSequence: [Math.floor(Math.random() * 4)], mldTurnUid: w, mldLives: wlives,
+                                mldNames: names, mldProgress: 0, mldOrder: order,
+                                mldSeqId: (d.mldSeqId || 0) + 1, mldRound: (d.mldRound || 0) + 1,
+                                mldLastWinner: w, mldUpdatedAt: now
+                            }, { merge: true });
+                            return { ok: true };
+                        }
+                        tx.set(ref, {
+                            mldLives: lives, mldNames: names, mldProgress: 0,
+                            mldTurnUid: nextUidTurn(remaining.length ? remaining : [myUid], myUid), mldUpdatedAt: now
+                        }, { merge: true });
+                        return { ok: true, fumble: true };
+                    }
+                    const newSeq = [...seq, idx];
+                    const players = activeMelodyPlayers(d);
+                    tx.set(ref, {
+                        mldSequence: newSeq, mldProgress: 0, mldSeqId: (d.mldSeqId || 0) + 1,
+                        mldNames: names, mldTurnUid: nextUidTurn(players, myUid), mldUpdatedAt: now
+                    }, { merge: true });
+                    return { ok: true, extended: true };
+                });
+                if (result && result.ok) {
+                    if (result.extended) awardXP(5);
+                    else if (result.repeat) awardXP(1);
+                    else if (result.fumble) playTone('pop');
+                }
+            } catch (e) {}
         };
 
-        window.tapMelodyPad = function(idx) {
-            playTone('pop', 300 + idx * 120); awardXP(1);
+        // ===== REFLEX SHOWDOWN: MULTIPLAYER =====
+        let rfxGoTimer = null;
+        function scheduleReflexGo() {
+            clearTimeout(rfxGoTimer); rfxGoTimer = null;
+            const s = sharedGameState;
+            if ((s.rfxPhase || 'idle') !== 'waiting' || !s.rfxGoAt) return;
+            const delay = Math.max(0, s.rfxGoAt - Date.now());
+            rfxGoTimer = setTimeout(async () => {
+                try {
+                    await runTransaction(db, async (tx) => {
+                        const ref = roomDoc();
+                        const snap = await tx.get(ref);
+                        const d = snap.exists() ? snap.data() : {};
+                        if ((d.rfxPhase || 'idle') !== 'waiting') return;
+                        tx.set(ref, { rfxPhase: 'go', rfxUpdatedAt: Date.now() }, { merge: true });
+                    });
+                } catch (e) {}
+            }, delay);
+        }
+        function renderReflex() {
+            const header = document.getElementById('reflexStatusHeader');
+            const btn = document.getElementById('reflexBuzzerBtn');
+            const resultEl = document.getElementById('reflexResultText');
+            const startBtn = document.getElementById('reflexStartBtn');
+            if (!header || !btn) return;
+            const s = sharedGameState;
+            const online = isFirebaseReady && auth && auth.currentUser;
+            if (!online) {
+                header.textContent = 'Ready for the Signal?';
+                if (startBtn) startBtn.classList.add('hidden');
+                return;
+            }
+            const phase = s.rfxPhase || 'idle';
+            const myUid = mySeatUid();
+            const fouled = (s.rfxFouls || []).includes(myUid);
+            if (phase === 'idle') {
+                header.textContent = 'Ready for the Signal?';
+                if (resultEl) resultEl.textContent = '';
+            } else if (phase === 'waiting') {
+                header.textContent = fouled ? '⛔ Too soon — out this round!' : 'Wait for it…';
+                if (resultEl) resultEl.textContent = '';
+            } else if (phase === 'go') {
+                header.textContent = fouled ? '⛔ You fouled!' : 'TAP NOW! ⚡';
+                if (resultEl) resultEl.textContent = '';
+            } else if (phase === 'done') {
+                const w = s.rfxWinner;
+                header.textContent = w ? (w.uid === myUid ? '🏆 You win!' : `🏆 ${escapeHtml(w.name)} wins!`) : 'Round over';
+                if (resultEl) resultEl.textContent = (w && w.uid === myUid) ? '+10 coins' : '';
+            }
+            btn.classList.toggle('opacity-40', fouled || phase === 'idle');
+            if (startBtn) startBtn.classList.toggle('hidden', !(phase === 'idle' || phase === 'done'));
+        }
+        window.startReflexRound = async function() {
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            playTone('pop');
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    if ((d.rfxPhase || 'idle') === 'waiting') return;
+                    tx.set(ref, {
+                        rfxPhase: 'waiting', rfxWinner: null, rfxFouls: [],
+                        rfxRound: (d.rfxRound || 0) + 1,
+                        rfxGoAt: Date.now() + 2000 + Math.floor(Math.random() * 3000),
+                        rfxUpdatedAt: Date.now()
+                    }, { merge: true });
+                });
+            } catch (e) {}
         };
-
-        window.triggerReflexBuzzer = function() {
-            playTone('win'); awardXP(5);
-            document.getElementById('reflexResultText').textContent = `${myPlayer.name} buzzed first! (+50 pts)`;
+        window.triggerReflexBuzzer = async function() {
+            if (!isFirebaseReady || !auth?.currentUser) {
+                playTone('win'); awardXP(5);
+                document.getElementById('reflexResultText').textContent = `${myPlayer.name} buzzed first! (+50 pts)`;
+                return;
+            }
+            const myUid = mySeatUid();
+            const myName = (myPlayer.name || 'Player').slice(0, 14);
+            try {
+                const result = await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    const phase = d.rfxPhase || 'idle';
+                    if (phase === 'waiting') {
+                        const fouls = d.rfxFouls || [];
+                        if (!fouls.includes(myUid)) {
+                            fouls.push(myUid);
+                            tx.set(ref, { rfxFouls: fouls, rfxUpdatedAt: Date.now() }, { merge: true });
+                        }
+                        return { ok: true, foul: true };
+                    }
+                    if (phase === 'go' && !d.rfxWinner && !(d.rfxFouls || []).includes(myUid)) {
+                        tx.set(ref, {
+                            rfxWinner: { uid: myUid, name: myName }, rfxPhase: 'done', rfxUpdatedAt: Date.now()
+                        }, { merge: true });
+                        return { ok: true, won: true };
+                    }
+                    return { ok: false };
+                });
+                if (result && result.ok) {
+                    if (result.won) {
+                        playTone('win'); awardXP(5);
+                        arcadeCoins += 10; persistCoins();
+                        const cc = document.getElementById('coinCountVal');
+                        if (cc) cc.textContent = arcadeCoins;
+                    } else if (result.foul) { playTone('pop'); }
+                }
+            } catch (e) {}
         };
 
         // --- STREAMING_CHUNK:Chat & Cloud Sync... ---
@@ -1986,7 +2420,7 @@
                 const rest = {};
                 Object.keys(sharedGameState).forEach(k => {
                     if (k === 'roomPlayers') return;
-                    if (k.startsWith('c4') || k.startsWith('trv') || k.startsWith('ht')) return;
+                    if (k.startsWith('c4') || k.startsWith('trv') || k.startsWith('ht') || k.startsWith('bmb') || k.startsWith('mld') || k.startsWith('rfx')) return;
                     rest[k] = sharedGameState[k];
                 });
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_games', `room_${currentRoomCode}`), rest, { merge: true });
