@@ -321,6 +321,7 @@
                             <i class="fa-solid fa-shuffle"></i>
                         </button>
                     </div>
+                    <div id="triviaStatusLine" class="text-[11px] font-bold text-center text-slate-300 truncate shrink-0"></div>
                     <div class="flex-1 flex flex-col justify-center gap-3">
                         <h3 id="triviaQuestionText" class="font-display font-bold text-sm text-white text-center">Question?</h3>
                         <div id="triviaOptionsGrid" class="grid grid-cols-2 gap-2"></div>
@@ -359,6 +360,10 @@
                         <button onclick="nextHotTakePrompt()" class="btn-game w-8 h-8 rounded-xl bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 text-xs flex items-center justify-center shrink-0">
                             <i class="fa-solid fa-shuffle"></i>
                         </button>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 shrink-0">
+                        <div id="htStatusLine" class="text-[11px] font-bold text-slate-300 truncate"></div>
+                        <button id="htRevealBtn" onclick="revealHotTakeVotes()" class="hidden btn-game px-2.5 py-1 rounded-xl bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300 text-[11px] font-bold whitespace-nowrap">👀 Reveal</button>
                     </div>
                     <div id="hotTakeCandidatesGrid" class="grid grid-cols-2 gap-2 flex-1 content-center overflow-y-auto"></div>
                 </div>
@@ -955,6 +960,17 @@
             bombLastWord: '',
             triviaIndex: 0,
             triviaScore: 0,
+            trvIndex: 0,
+            trvPhase: 'answering',
+            trvBuzz: null,
+            trvScores: {},
+            trvNames: {},
+            trvUpdatedAt: 0,
+            htPromptIndex: 0,
+            htVotes: {},
+            htPhase: 'voting',
+            htUpdatedAt: 0,
+            roomPlayers: [],
             melodySequence: [0, 2, 1, 3],
             melodyPlayerStep: 0,
             reflexState: { status: 'waiting', startTime: 0, winnerName: '' },
@@ -963,9 +979,31 @@
         };
 
         const TRIVIA_PACK = [
-            { q: "What year did arcade pixel games boom?", options: ["1978", "1982", "1991", "1985"], correct: 1 },
-            { q: "Which fictional city is Batman in?", options: ["Metropolis", "Gotham", "Star City", "Central City"], correct: 1 },
-            { q: "What animal is the Doge meme?", options: ["Shiba Inu", "Golden Retriever", "Corgi", "Pug"], correct: 0 }
+            { cat: "Pop Culture", q: "What year did arcade pixel games boom?", options: ["1978", "1982", "1991", "1985"], correct: 1 },
+            { cat: "Pop Culture", q: "Which fictional city is Batman in?", options: ["Metropolis", "Gotham", "Star City", "Central City"], correct: 1 },
+            { cat: "Pop Culture", q: "What animal is the Doge meme?", options: ["Shiba Inu", "Golden Retriever", "Corgi", "Pug"], correct: 0 },
+            { cat: "Science", q: "What planet is known as the Red Planet?", options: ["Venus", "Mars", "Jupiter", "Mercury"], correct: 1 },
+            { cat: "Science", q: "How many legs does a spider have?", options: ["6", "8", "10", "12"], correct: 1 },
+            { cat: "Science", q: "What gas do plants absorb from the air?", options: ["Oxygen", "Hydrogen", "Carbon dioxide", "Nitrogen"], correct: 2 },
+            { cat: "Gaming", q: "In Pac-Man, what do the ghosts do when you eat a power pellet?", options: ["Speed up", "Turn blue and flee", "Freeze", "Multiply"], correct: 1 },
+            { cat: "Gaming", q: "Which game features a plumber rescuing a princess?", options: ["Sonic", "Zelda", "Mario", "Kirby"], correct: 2 },
+            { cat: "Gaming", q: "What does 'GG' mean at the end of a match?", options: ["Get going", "Good game", "Great goal", "Go get"], correct: 1 },
+            { cat: "Food", q: "Which fruit has its seeds on the outside?", options: ["Blueberry", "Strawberry", "Raspberry", "Cherry"], correct: 1 },
+            { cat: "Food", q: "Sushi is a cuisine from which country?", options: ["China", "Thailand", "Japan", "Korea"], correct: 2 },
+            { cat: "Sports", q: "How many players are on a basketball team on the court?", options: ["4", "5", "6", "7"], correct: 1 }
+        ];
+
+        const HOTTAKE_PROMPTS = [
+            "Most likely to survive on an island with only snacks?",
+            "Most likely to become a famous streamer?",
+            "Most likely to fall asleep during a movie?",
+            "Most likely to win a hot-dog eating contest?",
+            "Most likely to get lost with GPS on?",
+            "Most likely to adopt 10 cats?",
+            "Most likely to laugh at their own joke?",
+            "Most likely to forget why they walked into a room?",
+            "Most likely to start a band?",
+            "Most likely to win the lottery and lose the ticket?"
         ];
 
         window.selectArcadeMode = function(modeKey) {
@@ -973,6 +1011,7 @@
             playTone('pop');
             renderAllMiniGamesUI();
             if (modeKey === 'connect4') claimDrop4Seat();
+            if (modeKey === 'hottakes') heartbeatRoomPresence();
             syncGameStateToCloud();
         };
 
@@ -1276,6 +1315,7 @@
             renderConnect4Board();
             renderC4TurnBanner();
             renderTriviaStage();
+            renderHotTakes();
         }
 
         // ===== DROP4 MULTIPLAYER ENGINE =====
@@ -1288,7 +1328,7 @@
             if (isFirebaseReady && auth && auth.currentUser) return auth.currentUser.uid;
             return myUserId;
         }
-        function c4RoomDoc() {
+        function roomDoc() {
             return doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_games', 'room_' + currentRoomCode);
         }
         function c4DropRow(board, col) {
@@ -1405,7 +1445,7 @@
             const myUid = mySeatUid();
             try {
                 const result = await runTransaction(db, async (tx) => {
-                    const ref = c4RoomDoc();
+                    const ref = roomDoc();
                     const snap = await tx.get(ref);
                     const d = snap.exists() ? snap.data() : {};
                     const board = Array.isArray(d.c4Board) ? d.c4Board.slice() : Array(42).fill(null);
@@ -1441,7 +1481,7 @@
         async function onlineReset4() {
             try {
                 await runTransaction(db, async (tx) => {
-                    const ref = c4RoomDoc();
+                    const ref = roomDoc();
                     const snap = await tx.get(ref);
                     const d = snap.exists() ? snap.data() : {};
                     const nextStarter = ((d.c4Starter || 0) + 1) % 2;
@@ -1471,7 +1511,7 @@
             const myUid = mySeatUid();
             try {
                 await runTransaction(db, async (tx) => {
-                    const ref = c4RoomDoc();
+                    const ref = roomDoc();
                     const snap = await tx.get(ref);
                     const d = snap.exists() ? snap.data() : null;
                     const players = (d && Array.isArray(d.c4Players)) ? d.c4Players.slice() : [];
@@ -1504,7 +1544,7 @@
             playTone('pop');
             const myUid = mySeatUid();
             runTransaction(db, async (tx) => {
-                const ref = c4RoomDoc();
+                const ref = roomDoc();
                 const snap = await tx.get(ref);
                 const d = snap.exists() ? snap.data() : {};
                 const players = Array.isArray(d.c4Players) ? d.c4Players.slice() : [];
@@ -1548,7 +1588,7 @@
         async function botTakeTurn() {
             try {
                 await runTransaction(db, async (tx) => {
-                    const ref = c4RoomDoc();
+                    const ref = roomDoc();
                     const snap = await tx.get(ref);
                     const d = snap.exists() ? snap.data() : {};
                     if (d.c4Winner) return;
@@ -1573,14 +1613,19 @@
         }
 
         // --- remote state in ---
-        function applyRemoteC4(d) {
+        const ROOM_SYNC_KEYS = ['c4Board', 'c4TurnIndex', 'c4Winner', 'c4Players', 'c4WinCells', 'c4Starter', 'c4BotOwner', 'c4UpdatedAt',
+            'trvIndex', 'trvPhase', 'trvBuzz', 'trvScores', 'trvNames', 'trvUpdatedAt',
+            'htPromptIndex', 'htVotes', 'htPhase', 'htUpdatedAt', 'roomPlayers'];
+        function applyRemoteGameState(d) {
             if (!d) return;
             const s = sharedGameState;
-            ['c4Board', 'c4TurnIndex', 'c4Winner', 'c4Players', 'c4WinCells', 'c4Starter', 'c4BotOwner', 'c4UpdatedAt'].forEach(k => {
+            ROOM_SYNC_KEYS.forEach(k => {
                 if (d[k] !== undefined && JSON.stringify(d[k]) !== JSON.stringify(s[k])) s[k] = d[k];
             });
             renderConnect4Board();
             renderC4TurnBanner();
+            renderTriviaStage();
+            renderHotTakes();
             const w = s.c4Winner;
             if (w && w !== c4Announced) {
                 c4Announced = w;
@@ -1590,18 +1635,51 @@
             maybeBotMove();
         }
 
+        // ===== TRIVIA GAME SHOW: MULTIPLAYER =====
         function renderTriviaStage() {
-            const q = TRIVIA_PACK[sharedGameState.triviaIndex % TRIVIA_PACK.length];
             const qEl = document.getElementById('triviaQuestionText');
             const grid = document.getElementById('triviaOptionsGrid');
+            const catEl = document.getElementById('triviaCategoryTag');
+            const statusEl = document.getElementById('triviaStatusLine');
             if (!qEl || !grid) return;
+            const s = sharedGameState;
+            const online = isFirebaseReady && auth && auth.currentUser;
+            const idx = (online ? (s.trvIndex || 0) : (s.triviaIndex || 0)) % TRIVIA_PACK.length;
+            const q = TRIVIA_PACK[idx];
+            if (catEl) catEl.textContent = q.cat || 'Trivia';
             qEl.textContent = q.q;
-            grid.innerHTML = q.options.map((opt, idx) => `
-                <button onclick="answerTrivia(${idx})" class="btn-game p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-bold">${opt}</button>
-            `).join('');
+            const buzz = online ? s.trvBuzz : null;
+            const revealed = online && (s.trvPhase || 'answering') === 'reveal' && buzz;
+            grid.innerHTML = q.options.map((opt, i) => {
+                let cls = 'btn-game p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white font-bold';
+                let dis = '';
+                if (revealed) {
+                    dis = 'disabled';
+                    if (i === q.correct) cls = 'p-2.5 rounded-xl bg-emerald-600/40 border-2 border-emerald-400 text-xs text-white font-bold';
+                    else if (i === buzz.pick) cls = 'p-2.5 rounded-xl bg-rose-600/40 border-2 border-rose-400 text-xs text-white font-bold';
+                    else cls = 'p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-500 font-bold opacity-60';
+                }
+                return `<button ${dis} onclick="answerTrivia(${i})" class="${cls}">${escapeHtml(opt)}</button>`;
+            }).join('');
+            if (statusEl) {
+                const scores = s.trvScores || {};
+                const names = s.trvNames || {};
+                const board = Object.keys(scores).map(uid => `${escapeHtml(names[uid] || '???')} ${scores[uid]}`).join(' · ');
+                if (!online) {
+                    statusEl.textContent = `Score: ${s.triviaScore || 0}`;
+                } else if (revealed && buzz) {
+                    const me = buzz.uid === mySeatUid();
+                    statusEl.textContent = (buzz.correct
+                        ? `⚡ ${me ? 'You got' : escapeHtml(buzz.name) + ' got'} it! +100`
+                        : `💥 ${me ? 'You missed' : escapeHtml(buzz.name) + ' missed'} it!`)
+                        + (board ? `    ·    ${board}` : '');
+                } else {
+                    statusEl.textContent = board ? `Scores: ${board}` : 'First to tap an answer scores!';
+                }
+            }
         }
 
-        window.answerTrivia = function(idx) {
+        function soloAnswerTrivia(idx) {
             const q = TRIVIA_PACK[sharedGameState.triviaIndex % TRIVIA_PACK.length];
             if (idx === q.correct) {
                 playTone('win');
@@ -1612,13 +1690,186 @@
             } else {
                 playTone('pop'); awardXP(2);
             }
-            nextTriviaQuestion();
-        };
-
-        window.nextTriviaQuestion = function() {
+            soloNextTrivia();
+        }
+        function soloNextTrivia() {
             sharedGameState.triviaIndex++;
             renderTriviaStage();
+        }
+
+        window.answerTrivia = async function(idx) {
+            if (!isFirebaseReady || !auth?.currentUser) { soloAnswerTrivia(idx); return; }
+            const myUid = mySeatUid();
+            try {
+                const result = await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    if ((d.trvPhase || 'answering') !== 'answering' || d.trvBuzz) return { ok: false };
+                    const q = TRIVIA_PACK[(d.trvIndex || 0) % TRIVIA_PACK.length];
+                    const correct = idx === q.correct;
+                    const myName = (myPlayer.name || 'Player').slice(0, 14);
+                    const names = { ...(d.trvNames || {}) }; names[myUid] = myName;
+                    const scores = { ...(d.trvScores || {}) };
+                    if (correct) scores[myUid] = (scores[myUid] || 0) + 100;
+                    tx.set(ref, {
+                        trvBuzz: { uid: myUid, name: myName, pick: idx, correct },
+                        trvPhase: 'reveal', trvScores: scores, trvNames: names, trvUpdatedAt: Date.now()
+                    }, { merge: true });
+                    return { ok: true, correct };
+                });
+                if (result && result.ok) {
+                    if (result.correct) {
+                        playTone('win');
+                        arcadeCoins += 10; persistCoins();
+                        document.getElementById('coinCountVal').textContent = arcadeCoins;
+                        awardXP(20);
+                    } else { playTone('pop'); awardXP(2); }
+                }
+            } catch (e) {}
         };
+
+        window.nextTriviaQuestion = async function() {
+            playTone('pop');
+            if (!isFirebaseReady || !auth?.currentUser) { soloNextTrivia(); return; }
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    let idx = (d.trvIndex || 0) % TRIVIA_PACK.length;
+                    if (TRIVIA_PACK.length > 1) {
+                        let n; do { n = Math.floor(Math.random() * TRIVIA_PACK.length); } while (n === idx);
+                        idx = n;
+                    }
+                    tx.set(ref, { trvIndex: idx, trvPhase: 'answering', trvBuzz: null, trvUpdatedAt: Date.now() }, { merge: true });
+                });
+            } catch (e) {}
+        };
+
+        // ===== MOST-LIKELY-TO VOTE: MULTIPLAYER =====
+        function renderHotTakes() {
+            const grid = document.getElementById('hotTakeCandidatesGrid');
+            const qEl = document.getElementById('hotTakeQuestionText');
+            const statusEl = document.getElementById('htStatusLine');
+            const revealBtn = document.getElementById('htRevealBtn');
+            if (!grid || !qEl) return;
+            const s = sharedGameState;
+            qEl.textContent = HOTTAKE_PROMPTS[(s.htPromptIndex || 0) % HOTTAKE_PROMPTS.length];
+            const online = isFirebaseReady && auth && auth.currentUser;
+            if (!online) {
+                grid.innerHTML = '<div class="col-span-2 text-center text-xs text-slate-500 font-bold p-4">Connect to vote together 🗳️</div>';
+                if (statusEl) statusEl.textContent = '';
+                if (revealBtn) revealBtn.classList.add('hidden');
+                return;
+            }
+            const myUid = mySeatUid();
+            const now = Date.now();
+            const players = (s.roomPlayers || []).filter(p => now - (p.lastSeen || 0) < 5 * 60 * 1000);
+            const votes = s.htVotes || {};
+            const phase = s.htPhase || 'voting';
+            const myVote = votes[myUid];
+            const counts = {};
+            Object.values(votes).forEach(v => { counts[v] = (counts[v] || 0) + 1; });
+            const totalVotes = Object.keys(votes).length;
+            const maxVotes = Math.max(0, ...Object.values(counts));
+            grid.innerHTML = players.map(p => {
+                const n = counts[p.uid] || 0;
+                const isMine = myVote === p.uid;
+                const isTop = phase === 'reveal' && n === maxVotes && n > 0;
+                let inner;
+                if (phase === 'reveal') {
+                    const pct = totalVotes ? Math.round(n / totalVotes * 100) : 0;
+                    const voterNames = Object.keys(votes).filter(v => votes[v] === p.uid)
+                        .map(v => { const pl = players.find(x => x.uid === v); return pl ? pl.name : ''; })
+                        .filter(Boolean).join(', ');
+                    inner = `<div class="text-2xl font-display font-extrabold text-white">${n}</div>`
+                        + `<div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1"><div class="h-full bg-fuchsia-500 rounded-full" style="width:${pct}%"></div></div>`
+                        + (voterNames ? `<div class="text-[9px] text-slate-400 font-bold mt-1 truncate max-w-full">${escapeHtml(voterNames)}</div>` : '');
+                } else {
+                    inner = `<div class="text-[10px] font-bold ${isMine ? 'text-fuchsia-300' : 'text-slate-500'}">${isMine ? '✓ your vote' : 'tap to vote'}</div>`;
+                }
+                return `<button onclick="voteHotTake('${p.uid}')" class="btn-game p-3 rounded-2xl border flex flex-col items-center justify-center gap-1 min-h-[76px] ${isTop ? 'bg-fuchsia-600/25 border-fuchsia-400' : isMine ? 'bg-fuchsia-600/15 border-fuchsia-500/60' : 'bg-slate-900 border-slate-800'}">`
+                    + `<span class="text-xs font-bold text-white">${escapeHtml(p.name)}${p.uid === myUid ? ' (you)' : ''} ${isTop ? '👑' : ''}</span>${inner}</button>`;
+            }).join('') || '<div class="col-span-2 text-center text-xs text-slate-500 font-bold p-4">Waiting for players…</div>';
+            if (statusEl) {
+                statusEl.textContent = phase === 'reveal'
+                    ? `Results are in! ${totalVotes} vote${totalVotes === 1 ? '' : 's'}`
+                    : `${totalVotes}/${players.length} voted`;
+            }
+            if (revealBtn) revealBtn.classList.toggle('hidden', !(phase === 'voting' && totalVotes > 0));
+        }
+
+        window.voteHotTake = async function(candidateUid) {
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            playTone('pop');
+            const myUid = mySeatUid();
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    if ((d.htPhase || 'voting') !== 'voting') return;
+                    const votes = { ...(d.htVotes || {}) };
+                    votes[myUid] = candidateUid;
+                    const now = Date.now();
+                    const players = (d.roomPlayers || []).filter(p => now - (p.lastSeen || 0) < 5 * 60 * 1000);
+                    const update = { htVotes: votes, htUpdatedAt: now };
+                    if (players.length > 0 && Object.keys(votes).length >= players.length) update.htPhase = 'reveal';
+                    tx.set(ref, update, { merge: true });
+                });
+            } catch (e) {}
+        };
+
+        window.nextHotTakePrompt = async function() {
+            playTone('pop');
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    let idx = (d.htPromptIndex || 0) % HOTTAKE_PROMPTS.length;
+                    if (HOTTAKE_PROMPTS.length > 1) {
+                        let n; do { n = Math.floor(Math.random() * HOTTAKE_PROMPTS.length); } while (n === idx);
+                        idx = n;
+                    }
+                    tx.set(ref, { htPromptIndex: idx, htVotes: {}, htPhase: 'voting', htUpdatedAt: Date.now() }, { merge: true });
+                });
+            } catch (e) {}
+        };
+
+        window.revealHotTakeVotes = async function() {
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            playTone('win');
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    if ((d.htPhase || 'voting') !== 'voting') return;
+                    tx.set(ref, { htPhase: 'reveal', htUpdatedAt: Date.now() }, { merge: true });
+                });
+            } catch (e) {}
+        };
+
+        // ===== ROOM PRESENCE (powers vote candidates + future games) =====
+        async function heartbeatRoomPresence() {
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            const myUid = mySeatUid();
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = roomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    const now = Date.now();
+                    let players = Array.isArray(d.roomPlayers) ? d.roomPlayers.slice() : [];
+                    players = players.filter(p => p.uid !== myUid && now - (p.lastSeen || 0) < 5 * 60 * 1000);
+                    players.push({ uid: myUid, name: (myPlayer.name || 'Player').slice(0, 14), lastSeen: now });
+                    tx.set(ref, { roomPlayers: players.slice(-8) }, { merge: true });
+                });
+            } catch (e) {}
+        }
 
         window.startMelodySequence = function() {
             playTone('win');
@@ -1715,9 +1966,11 @@
                 else await signInAnonymously(auth);
                 isFirebaseReady = true;
                 try {
-                    onSnapshot(c4RoomDoc(), (snap) => { if (snap.exists()) applyRemoteC4(snap.data()); });
+                    onSnapshot(roomDoc(), (snap) => { if (snap.exists()) applyRemoteGameState(snap.data()); });
                 } catch (e) {}
                 if ((sharedGameState.activeGame || 'connect4') === 'connect4') claimDrop4Seat();
+                heartbeatRoomPresence();
+                setInterval(heartbeatRoomPresence, 30000);
                 syncMyPlayerToCloud(); persistAll();
             } catch(e) {}
         }
@@ -1730,8 +1983,13 @@
         async function syncGameStateToCloud() {
             if (!isFirebaseReady || !auth?.currentUser) return;
             try {
-                const { c4Board, c4TurnIndex, c4Winner, c4Players, c4WinCells, c4Starter, c4BotOwner, c4UpdatedAt, ...rest } = sharedGameState;
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_games', `room_${currentRoomCode}`), { ...rest }, { merge: true });
+                const rest = {};
+                Object.keys(sharedGameState).forEach(k => {
+                    if (k === 'roomPlayers') return;
+                    if (k.startsWith('c4') || k.startsWith('trv') || k.startsWith('ht')) return;
+                    rest[k] = sharedGameState[k];
+                });
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_games', `room_${currentRoomCode}`), rest, { merge: true });
             } catch(e){}
         }
 
