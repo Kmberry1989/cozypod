@@ -270,11 +270,17 @@
                 
                 <!-- MINI-GAME: CONNECT 4 (DROP 4) -->
                 <div id="stage-connect4" class="flex-1 flex flex-col justify-between overflow-hidden">
-                    <div class="flex items-center justify-between shrink-0">
-                        <div id="c4TurnOrderPills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar"></div>
-                        <button onclick="resetConnect4()" class="btn-game w-7 h-7 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 flex items-center justify-center">
-                            <i class="fa-solid fa-rotate-right"></i>
-                        </button>
+                    <div class="shrink-0 space-y-1">
+                        <div class="flex items-center justify-between gap-1.5">
+                            <div id="c4TurnOrderPills" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar"></div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button id="c4BotBtn" onclick="addDrop4Bot()" class="hidden btn-game px-2 py-1 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-bold whitespace-nowrap">🤖 vs Bot</button>
+                                <button onclick="resetConnect4()" title="New match" class="btn-game w-7 h-7 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 flex items-center justify-center">
+                                    <i class="fa-solid fa-rotate-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="c4StatusLine" class="text-[11px] font-bold text-slate-300 truncate"></div>
                     </div>
                     <div class="flex-1 flex items-center justify-center overflow-hidden my-1">
                         <div id="c4BoardContainer" class="bg-slate-950 p-2 rounded-2xl border-2 border-slate-800 shadow-inner w-full max-w-[280px]">
@@ -521,7 +527,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const EXTERNAL_FIREBASE_CONFIG = {
             apiKey: "AIzaSyDJffr2GYu8Q22oZ4bvnsfL1UVFvLQU35k",
@@ -938,6 +944,11 @@
             c4Board: Array(42).fill(null),
             c4TurnIndex: 0,
             c4Winner: null,
+            c4Players: [],
+            c4WinCells: [],
+            c4Starter: 0,
+            c4BotOwner: null,
+            c4UpdatedAt: 0,
             bombSyllable: 'ST',
             bombTurnIndex: 0,
             bombChainCount: 0,
@@ -961,6 +972,7 @@
             sharedGameState.activeGame = modeKey;
             playTone('pop');
             renderAllMiniGamesUI();
+            if (modeKey === 'connect4') claimDrop4Seat();
             syncGameStateToCloud();
         };
 
@@ -1262,36 +1274,321 @@
                 }
             });
             renderConnect4Board();
+            renderC4TurnBanner();
             renderTriviaStage();
+        }
+
+        // ===== DROP4 MULTIPLAYER ENGINE =====
+        const C4_DISC_COLORS = ['#f43f5e', '#f59e0b'];
+        const C4_BOT_UID = '__podbot__';
+        let c4Announced = '__none__';
+        let botMoveToken = null;
+
+        function mySeatUid() {
+            if (isFirebaseReady && auth && auth.currentUser) return auth.currentUser.uid;
+            return myUserId;
+        }
+        function c4RoomDoc() {
+            return doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_games', 'room_' + currentRoomCode);
+        }
+        function c4DropRow(board, col) {
+            for (let r = 5; r >= 0; r--) if (board[r * 7 + col] === null) return r;
+            return -1;
+        }
+        function c4CheckWin(board, row, col, val) {
+            const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            for (const [dr, dc] of dirs) {
+                const cells = [[row, col]];
+                for (const s of [1, -1]) {
+                    let r = row + dr * s, c = col + dc * s;
+                    while (r >= 0 && r < 6 && c >= 0 && c < 7 && board[r * 7 + c] === val) {
+                        cells.push([r, c]); r += dr * s; c += dc * s;
+                    }
+                }
+                if (cells.length >= 4) return cells.slice(0, 4).map(([r, c]) => r * 7 + c);
+            }
+            return null;
         }
 
         function renderConnect4Board() {
             const grid = document.getElementById('c4Grid');
             if (!grid) return;
-            grid.innerHTML = sharedGameState.c4Board.map((val, idx) => `
-                <button onclick="dropConnect4Disc(${idx % 7})" class="aspect-square w-full rounded-full border-2 border-slate-800 bg-slate-900 flex items-center justify-center" style="${val !== null ? 'background:#f43f5e;' : ''}"></button>
-            `).join('');
+            const winCells = sharedGameState.c4WinCells || [];
+            grid.innerHTML = sharedGameState.c4Board.map((val, idx) => {
+                const win = winCells.includes(idx);
+                const bg = (val === 0 || val === 1) ? `background:${C4_DISC_COLORS[val]};` : '';
+                const ring = win ? 'box-shadow:0 0 0 3px #fff, 0 0 14px #fff;' : '';
+                return `<button onclick="dropConnect4Disc(${idx % 7})" class="aspect-square w-full rounded-full border-2 ${win ? 'border-white' : 'border-slate-800'} bg-slate-900 flex items-center justify-center" style="${bg}${ring}"></button>`;
+            }).join('');
+        }
+
+        function renderC4TurnBanner() {
+            const pillsEl = document.getElementById('c4TurnOrderPills');
+            const statusEl = document.getElementById('c4StatusLine');
+            const botBtn = document.getElementById('c4BotBtn');
+            if (!pillsEl || !statusEl) return;
+            const s = sharedGameState;
+            const players = s.c4Players || [];
+            const online = isFirebaseReady && auth && auth.currentUser;
+            const myUid = mySeatUid();
+            const myIdx = players.findIndex(p => p.uid === myUid);
+            pillsEl.innerHTML = players.map((p, i) => {
+                const isTurn = !s.c4Winner && s.c4TurnIndex === i && players.length === 2;
+                const isMe = p.uid === myUid;
+                return `<span class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap border ${isTurn ? 'bg-slate-700/80 border-white/60 text-white' : 'bg-slate-900 border-slate-700/60 text-slate-300'}">`
+                    + `<span class="w-2 h-2 rounded-full" style="background:${C4_DISC_COLORS[i % 2]}"></span>${escapeHtml(p.name)}${isMe ? ' (you)' : ''}${isTurn ? ' ●' : ''}</span>`;
+            }).join('') || '<span class="text-[10px] text-slate-500 font-bold">No players yet</span>';
+            let status = '';
+            if (s.c4Winner) {
+                if (s.c4Winner === 'draw') status = '🤝 Draw! Tap ⟳ for a rematch.';
+                else {
+                    const w = players.find(p => p.uid === s.c4Winner);
+                    const wName = w ? w.name : 'Someone';
+                    status = (w && w.uid === myUid) ? '🏆 You win! +20 coins' : `🏆 ${wName} wins! Tap ⟳ for a rematch.`;
+                }
+            } else if (!online) {
+                status = `Pass-and-play: Player ${(s.c4TurnIndex || 0) + 1}'s turn (${(s.c4TurnIndex || 0) === 0 ? '🔴' : '🟡'})`;
+            } else if (players.length < 2) {
+                status = myIdx === 0 ? 'Waiting for an opponent… or challenge the bot 👆' : 'Joining game…';
+            } else if (myIdx === -1) {
+                const t = players[s.c4TurnIndex];
+                status = t ? `${t.name}'s turn… (spectating)` : '';
+            } else if (s.c4TurnIndex === myIdx) {
+                status = 'Your turn — drop a disc!';
+            } else {
+                const t = players[s.c4TurnIndex];
+                status = t ? `${t.name}'s turn…` : '';
+            }
+            statusEl.textContent = status;
+            if (botBtn) {
+                const showBot = online && !s.c4Winner && players.length === 1 && myIdx === 0;
+                botBtn.classList.toggle('hidden', !showBot);
+            }
+        }
+
+        function onLocalC4Win() {
+            playTone('win');
+            awardXP(30);
+            arcadeCoins += 20; persistCoins();
+            const cc = document.getElementById('coinCountVal');
+            if (cc) cc.textContent = arcadeCoins;
+        }
+
+        // --- offline pass-and-play fallback ---
+        function localDrop4(col) {
+            const s = sharedGameState;
+            if (s.c4Winner) return;
+            if (!s.c4Players.length) s.c4Players = [{ uid: 'p0', name: 'Player 1' }, { uid: 'p1', name: 'Player 2' }];
+            const meIdx = s.c4TurnIndex || 0;
+            const row = c4DropRow(s.c4Board, col);
+            if (row === -1) { playTone('pop'); return; }
+            s.c4Board[row * 7 + col] = meIdx;
+            playTone('disc'); awardXP(2);
+            const winCells = c4CheckWin(s.c4Board, row, col, meIdx);
+            if (winCells) { s.c4Winner = 'p' + meIdx; s.c4WinCells = winCells; onLocalC4Win(); }
+            else if (s.c4Board.every(v => v !== null)) { s.c4Winner = 'draw'; s.c4WinCells = []; playTone('pop'); }
+            else s.c4TurnIndex = 1 - meIdx;
+            renderConnect4Board(); renderC4TurnBanner();
+        }
+        function localReset4() {
+            const s = sharedGameState;
+            s.c4Board = Array(42).fill(null);
+            s.c4Winner = null; s.c4WinCells = [];
+            s.c4Starter = ((s.c4Starter || 0) + 1) % 2;
+            s.c4TurnIndex = s.c4Players.length === 2 ? s.c4Starter : 0;
+            c4Announced = '__none__'; botMoveToken = null;
+            renderConnect4Board(); renderC4TurnBanner();
+        }
+
+        // --- online: transactional moves against the room doc ---
+        async function onlineDrop4(col) {
+            const myUid = mySeatUid();
+            try {
+                const result = await runTransaction(db, async (tx) => {
+                    const ref = c4RoomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    const board = Array.isArray(d.c4Board) ? d.c4Board.slice() : Array(42).fill(null);
+                    const players = Array.isArray(d.c4Players) ? d.c4Players : [];
+                    const turn = typeof d.c4TurnIndex === 'number' ? d.c4TurnIndex : 0;
+                    if (d.c4Winner) return { ok: false, reason: 'over' };
+                    const meIdx = players.findIndex(p => p.uid === myUid);
+                    if (meIdx === -1) return { ok: false, reason: 'noseat' };
+                    if (players.length < 2) return { ok: false, reason: 'waiting' };
+                    if (turn !== meIdx) return { ok: false, reason: 'notyourturn' };
+                    const row = c4DropRow(board, col);
+                    if (row === -1) return { ok: false, reason: 'full' };
+                    board[row * 7 + col] = meIdx;
+                    const winCells = c4CheckWin(board, row, col, meIdx);
+                    const isDraw = !winCells && board.every(v => v !== null);
+                    const update = { c4Board: board, c4UpdatedAt: Date.now() };
+                    if (winCells) { update.c4Winner = players[meIdx].uid; update.c4WinCells = winCells; }
+                    else if (isDraw) { update.c4Winner = 'draw'; update.c4WinCells = []; }
+                    else update.c4TurnIndex = 1 - turn;
+                    tx.set(ref, update, { merge: true });
+                    return { ok: true, won: !!winCells, draw: isDraw };
+                });
+                if (result && result.ok) {
+                    playTone('disc'); awardXP(2);
+                    if (result.won) onLocalC4Win();
+                    else if (result.draw) playTone('pop');
+                } else if (result && (result.reason === 'notyourturn' || result.reason === 'full')) {
+                    playTone('pop');
+                }
+            } catch (e) {}
+        }
+
+        async function onlineReset4() {
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = c4RoomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    const nextStarter = ((d.c4Starter || 0) + 1) % 2;
+                    tx.set(ref, {
+                        c4Board: Array(42).fill(null), c4Winner: null, c4WinCells: [],
+                        c4TurnIndex: nextStarter, c4Starter: nextStarter, c4UpdatedAt: Date.now()
+                    }, { merge: true });
+                });
+            } catch (e) {}
         }
 
         window.dropConnect4Disc = function(col) {
-            for (let r = 5; r >= 0; r--) {
-                const idx = r * 7 + col;
-                if (sharedGameState.c4Board[idx] === null) {
-                    sharedGameState.c4Board[idx] = 0;
-                    playTone('disc'); awardXP(2);
-                    renderConnect4Board();
-                    syncGameStateToCloud();
-                    break;
-                }
-            }
+            if (isFirebaseReady && auth && auth.currentUser) onlineDrop4(col);
+            else localDrop4(col);
         };
 
         window.resetConnect4 = function() {
-            sharedGameState.c4Board = Array(42).fill(null);
             playTone('pop');
-            renderConnect4Board();
-            syncGameStateToCloud();
+            c4Announced = '__none__'; botMoveToken = null;
+            if (isFirebaseReady && auth && auth.currentUser) onlineReset4();
+            else localReset4();
         };
+
+        // --- seat claiming ---
+        async function claimDrop4Seat() {
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            const myUid = mySeatUid();
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = c4RoomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : null;
+                    const players = (d && Array.isArray(d.c4Players)) ? d.c4Players.slice() : [];
+                    const me = players.find(p => p.uid === myUid);
+                    const myName = (myPlayer.name || 'Player').slice(0, 14);
+                    if (me) {
+                        if (me.name !== myName) {
+                            me.name = myName;
+                            tx.set(ref, { c4Players: players, c4UpdatedAt: Date.now() }, { merge: true });
+                        }
+                        return;
+                    }
+                    if (players.length >= 2) return;
+                    players.push({ uid: myUid, name: myName });
+                    const init = { c4Players: players, c4UpdatedAt: Date.now() };
+                    if (!d) {
+                        init.c4Board = Array.isArray(sharedGameState.c4Board) ? sharedGameState.c4Board.slice() : Array(42).fill(null);
+                        init.c4TurnIndex = sharedGameState.c4TurnIndex || 0;
+                        init.c4Winner = null; init.c4WinCells = [];
+                        init.c4Starter = 0; init.c4BotOwner = null;
+                    }
+                    tx.set(ref, init, { merge: true });
+                });
+            } catch (e) {}
+        }
+
+        // --- bot opponent ---
+        window.addDrop4Bot = function() {
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            playTone('pop');
+            const myUid = mySeatUid();
+            runTransaction(db, async (tx) => {
+                const ref = c4RoomDoc();
+                const snap = await tx.get(ref);
+                const d = snap.exists() ? snap.data() : {};
+                const players = Array.isArray(d.c4Players) ? d.c4Players.slice() : [];
+                if (players.length !== 1 || players[0].uid !== myUid) return;
+                if (players.some(p => p.uid === C4_BOT_UID)) return;
+                players.push({ uid: C4_BOT_UID, name: 'PodBot' });
+                tx.set(ref, { c4Players: players, c4BotOwner: myUid, c4UpdatedAt: Date.now() }, { merge: true });
+            }).catch(() => {});
+        };
+        function c4BotPickColumn(board, me) {
+            const opp = 1 - me;
+            const valid = [];
+            for (let c = 0; c < 7; c++) if (board[c] === null) valid.push(c);
+            if (!valid.length) return -1;
+            for (const c of valid) {
+                const r = c4DropRow(board, c); board[r * 7 + c] = me;
+                const w = c4CheckWin(board, r, c, me); board[r * 7 + c] = null;
+                if (w) return c;
+            }
+            for (const c of valid) {
+                const r = c4DropRow(board, c); board[r * 7 + c] = opp;
+                const w = c4CheckWin(board, r, c, opp); board[r * 7 + c] = null;
+                if (w) return c;
+            }
+            const pref = [3, 2, 4, 1, 5, 0, 6].filter(c => valid.includes(c));
+            return pref[Math.floor(Math.random() * Math.min(3, pref.length))];
+        }
+        function maybeBotMove() {
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            const s = sharedGameState;
+            if (s.c4Winner || (s.c4Players || []).length !== 2) return;
+            const turnPlayer = s.c4Players[s.c4TurnIndex];
+            if (!turnPlayer || turnPlayer.uid !== C4_BOT_UID) return;
+            const stale = Date.now() - (s.c4UpdatedAt || 0) > 15000;
+            if (s.c4BotOwner !== mySeatUid() && !stale) return;
+            const token = s.c4Board.join('') + '|' + s.c4TurnIndex;
+            if (botMoveToken === token) return;
+            botMoveToken = token;
+            setTimeout(botTakeTurn, 700 + Math.random() * 600);
+        }
+        async function botTakeTurn() {
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = c4RoomDoc();
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    if (d.c4Winner) return;
+                    const players = d.c4Players || [];
+                    const turn = d.c4TurnIndex || 0;
+                    if (!players[turn] || players[turn].uid !== C4_BOT_UID) return;
+                    const board = Array.isArray(d.c4Board) ? d.c4Board.slice() : Array(42).fill(null);
+                    const col = c4BotPickColumn(board, turn);
+                    if (col === -1) return;
+                    const row = c4DropRow(board, col);
+                    if (row === -1) return;
+                    board[row * 7 + col] = turn;
+                    const winCells = c4CheckWin(board, row, col, turn);
+                    const isDraw = !winCells && board.every(v => v !== null);
+                    const update = { c4Board: board, c4UpdatedAt: Date.now() };
+                    if (winCells) { update.c4Winner = C4_BOT_UID; update.c4WinCells = winCells; }
+                    else if (isDraw) { update.c4Winner = 'draw'; update.c4WinCells = []; }
+                    else update.c4TurnIndex = 1 - turn;
+                    tx.set(ref, update, { merge: true });
+                });
+            } catch (e) {}
+        }
+
+        // --- remote state in ---
+        function applyRemoteC4(d) {
+            if (!d) return;
+            const s = sharedGameState;
+            ['c4Board', 'c4TurnIndex', 'c4Winner', 'c4Players', 'c4WinCells', 'c4Starter', 'c4BotOwner', 'c4UpdatedAt'].forEach(k => {
+                if (d[k] !== undefined && JSON.stringify(d[k]) !== JSON.stringify(s[k])) s[k] = d[k];
+            });
+            renderConnect4Board();
+            renderC4TurnBanner();
+            const w = s.c4Winner;
+            if (w && w !== c4Announced) {
+                c4Announced = w;
+                playTone(w === 'draw' ? 'pop' : 'win');
+            }
+            if (!w) c4Announced = '__none__';
+            maybeBotMove();
+        }
 
         function renderTriviaStage() {
             const q = TRIVIA_PACK[sharedGameState.triviaIndex % TRIVIA_PACK.length];
@@ -1416,6 +1713,10 @@
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
                 else await signInAnonymously(auth);
                 isFirebaseReady = true;
+                try {
+                    onSnapshot(c4RoomDoc(), (snap) => { if (snap.exists()) applyRemoteC4(snap.data()); });
+                } catch (e) {}
+                if ((sharedGameState.activeGame || 'connect4') === 'connect4') claimDrop4Seat();
                 syncMyPlayerToCloud(); persistAll();
             } catch(e) {}
         }
@@ -1427,7 +1728,10 @@
 
         async function syncGameStateToCloud() {
             if (!isFirebaseReady || !auth?.currentUser) return;
-            try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_games', `room_${currentRoomCode}`), { ...sharedGameState }); } catch(e){}
+            try {
+                const { c4Board, c4TurnIndex, c4Winner, c4Players, c4WinCells, c4Starter, c4BotOwner, c4UpdatedAt, ...rest } = sharedGameState;
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'cozypod_games', `room_${currentRoomCode}`), { ...rest }, { merge: true });
+            } catch(e){}
         }
 
 
