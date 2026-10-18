@@ -1681,6 +1681,7 @@
             initWardrobeUI();
             renderRosterBar();
             expandChrome();
+            if ((sharedGameState.activeGame || 'connect4') === 'connect4') claimDrop4Seat();
         };
 
         window.openDeployModal = function() {
