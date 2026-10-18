@@ -8,6 +8,9 @@
 <style>
   body { background:#020617; -webkit-tap-highlight-color: transparent; }
   .style-card img { display:block; width:100%; height:auto; }
+  .thumb-grid { display:grid; grid-template-columns:1fr 1fr; border-top:1px solid #1e293b; }
+  .thumb-grid img { height:11rem; width:100%; object-fit:cover; display:block; }
+  .thumb-grid img:first-child { border-right:1px solid #1e293b; }
   .copied-flash { background:#059669 !important; }
 </style>
 </head>
@@ -47,8 +50,8 @@ STYLES.forEach(s => {
       </button>
     </div>
     <img src="art-direction/${s.dir}-lounge.jpg" alt="${s.id} lounge" loading="lazy">
-    <div class="grid grid-cols-2 gap-0 border-t border-slate-800">
-      <img src="art-direction/${s.dir}-logo.jpg" alt="${s.id} logo" loading="lazy" class="border-r border-slate-800">
+    <div class="thumb-grid">
+      <img src="art-direction/${s.dir}-logo.jpg" alt="${s.id} logo" loading="lazy">
       <img src="art-direction/${s.dir}-menu.jpg" alt="${s.id} menu" loading="lazy">
     </div>
     <div class="px-4 py-2 border-t border-slate-800">
