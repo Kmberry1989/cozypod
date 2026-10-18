@@ -1222,6 +1222,20 @@
             var f = (p && p.features) || {};
             return PODLING_BODIES.find(function(b) { return b.id === f.body; }) || PODLING_BODIES[0];
         }
+        function buildPodlingClay(p, size) {
+            size = size || 64;
+            var f = (p && p.features) || {};
+            var body = f.body || 'mint', sprout = f.sprout || 'leaf', face = f.face || 'happy';
+            var noErr = 'onerror="this.style.display=\'none\'"';
+            var html = '<span style="position:relative;display:inline-block;width:' + size + 'px;height:' + size + 'px;vertical-align:middle;">' +
+                '<img src="art/podling/body-' + body + '.png" alt="" ' + noErr + ' style="position:absolute;inset:0;width:100%;height:100%;">';
+            if (sprout !== 'none') {
+                var sw = sprout === 'mushroom' ? 24 : 33;
+                html += '<img src="art/podling/sprout-' + sprout + '.png" alt="" ' + noErr + ' style="position:absolute;bottom:76%;left:50%;transform:translateX(-50%);width:' + sw + '%;">';
+            }
+            html += '<img src="art/podling/face-' + face + '.png" alt="" ' + noErr + ' style="position:absolute;top:27%;left:50%;transform:translateX(-50%);width:55%;">';
+            return html + '</span>';
+        }
         function buildPodlingSVG(p, size) {
             size = size || 64;
             var f = (p && p.features) || {};
@@ -1263,7 +1277,7 @@
             return '<circle cx="24" cy="28" r="2.6" fill="#0f172a"/><circle cx="40" cy="28" r="2.6" fill="#0f172a"/>' + smile;
         }
         function buildAvatarSVG(p, size = 64) {
-            if ((p.species || 'podling') === 'podling') return buildPodlingSVG(p, size);
+            if ((p.species || 'podling') === 'podling') return buildPodlingClay(p, size);
             const skin = p.skinColor || '#ffb4a2';
             const outfit = p.outfitColor || '#7c3aed';
             const hatObj = HATS.find(h => h.id === p.hat);
@@ -1283,13 +1297,13 @@
             document.getElementById('avatarStatusInput').value = myPlayer.status;
             var pfeat0 = myPlayer.features || {};
             document.getElementById('colorPickerRow').innerHTML = PODLING_BODIES.map(b => `
-                <button onclick="updatePodlingFeature('body', '${b.id}')" title="${b.id}" class="btn-game w-7 h-7 rounded-full border-2 ${pfeat0.body === b.id ? 'border-white scale-110' : 'border-slate-800'}" style="background:${b.color}"></button>
+                <button onclick="updatePodlingFeature('body', '${b.id}')" title="${b.id}" class="btn-game w-10 h-10 rounded-2xl border-2 ${pfeat0.body === b.id ? 'border-white scale-110' : 'border-slate-800'} bg-slate-950 overflow-hidden p-0.5"><img src="art/podling/body-${b.id}.png" class="w-full h-full object-contain" alt="${b.id}"></button>
             `).join('');
             document.getElementById('outfitPickerRow').innerHTML = PODLING_SPROUTS.map(s => `
-                <button onclick="updatePodlingFeature('sprout', '${s.id}')" title="${s.id}" class="btn-game h-9 rounded-xl border flex items-center justify-center text-base ${pfeat0.sprout === s.id ? 'bg-violet-600/30 border-violet-400' : 'bg-slate-950 border-slate-800'}">${s.icon}</button>
+                <button onclick="updatePodlingFeature('sprout', '${s.id}')" title="${s.id}" class="btn-game w-10 h-10 rounded-2xl border-2 ${pfeat0.sprout === s.id ? 'border-violet-400 bg-violet-600/30' : 'border-slate-800 bg-slate-950'} overflow-hidden p-1 flex items-center justify-center">${s.id === 'none' ? '<span class="text-slate-400 text-sm">✖️</span>' : `<img src="art/podling/sprout-${s.id}.png" class="w-full h-full object-contain" alt="${s.id}">`}</button>
             `).join('');
             document.getElementById('hatPickerRow').innerHTML = PODLING_FACES.map(f => `
-                <button onclick="updatePodlingFeature('face', '${f.id}')" title="${f.id}" class="btn-game h-9 rounded-xl border flex items-center justify-center text-base ${pfeat0.face === f.id ? 'bg-violet-600/30 border-violet-400' : 'bg-slate-950 border-slate-800'}">${f.icon}</button>
+                <button onclick="updatePodlingFeature('face', '${f.id}')" title="${f.id}" class="btn-game w-10 h-10 rounded-2xl border-2 ${pfeat0.face === f.id ? 'border-violet-400 bg-violet-600/30' : 'border-slate-800 bg-slate-950'} overflow-hidden p-1 flex items-center justify-center"><img src="art/podling/face-${f.id}.png" class="w-full h-full object-contain" alt="${f.id}"></button>
             `).join('');
             document.getElementById('eyesPickerRow').parentElement.style.display = 'none';
             document.getElementById('wardrobeAvatarPreview').innerHTML = buildAvatarSVG(myPlayer, 56);
