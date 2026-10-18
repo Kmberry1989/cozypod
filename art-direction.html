@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CozyPod Art Direction</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background:#020617; -webkit-tap-highlight-color: transparent; }
+  .style-card img { display:block; width:100%; height:auto; }
+  .copied-flash { background:#059669 !important; }
+</style>
+</head>
+<body class="text-slate-200 min-h-screen pb-10">
+  <header class="max-w-3xl mx-auto px-4 pt-8 pb-2 text-center">
+    <h1 class="text-2xl font-black text-white tracking-tight">Pick CozyPod's art direction</h1>
+    <p class="text-xs text-slate-400 mt-1">Four styles. Tap <span class="text-slate-200 font-bold">Copy pick</span> on your favorite and paste it back to me.</p>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 space-y-6 mt-4" id="cards"></main>
+
+<script>
+const STYLES = [
+  { id:'Cozy Pixel', dir:'pixel', blurb:'Retro pixel-art warmth. Matches the arcade minigames, reads great tiny.',
+    accent:'border-amber-400/60', chip:'bg-amber-400/15 text-amber-300' },
+  { id:'Clay Craft', dir:'clay', blurb:'Handmade stop-motion feel. Soft, tactile, warm like a craft table.',
+    accent:'border-orange-400/60', chip:'bg-orange-400/15 text-orange-300' },
+  { id:'Neon Arcade', dir:'neon', blurb:'Bold glowing arcade energy. High contrast, pops on phone screens.',
+    accent:'border-fuchsia-400/60', chip:'bg-fuchsia-400/15 text-fuchsia-300' },
+  { id:'Storybook', dir:'storybook', blurb:'Soft picture-book illustration. The coziest of the four.',
+    accent:'border-emerald-400/60', chip:'bg-emerald-400/15 text-emerald-300' },
+];
+
+const main = document.getElementById('cards');
+STYLES.forEach(s => {
+  const el = document.createElement('section');
+  el.className = `style-card bg-slate-900 border-2 ${s.accent} rounded-3xl overflow-hidden shadow-2xl`;
+  el.innerHTML = `
+    <div class="p-4 pb-3 flex items-center justify-between gap-2">
+      <div>
+        <h2 class="text-lg font-black text-white">${s.id}</h2>
+        <p class="text-[11px] text-slate-400 mt-0.5">${s.blurb}</p>
+      </div>
+      <button data-pick="${s.id}"
+        class="shrink-0 px-3 py-2 rounded-xl bg-violet-600 text-white text-xs font-bold shadow-lg active:scale-95 transition">
+        Copy pick
+      </button>
+    </div>
+    <img src="art-direction/${s.dir}-lounge.jpg" alt="${s.id} lounge" loading="lazy">
+    <div class="grid grid-cols-2 gap-0 border-t border-slate-800">
+      <img src="art-direction/${s.dir}-logo.jpg" alt="${s.id} logo" loading="lazy" class="border-r border-slate-800">
+      <img src="art-direction/${s.dir}-menu.jpg" alt="${s.id} menu" loading="lazy">
+    </div>
+    <div class="px-4 py-2 border-t border-slate-800">
+      <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${s.chip}">${s.id} · lounge / logo / menu</span>
+    </div>`;
+  main.appendChild(el);
+});
+
+main.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-pick]');
+  if (!btn) return;
+  const text = btn.dataset.pick;
+  try { await navigator.clipboard.writeText(text); }
+  catch (_) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  const orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied-flash');
+  setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied-flash'); }, 1200);
+});
+</script>
+</body>
+</html>
