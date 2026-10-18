@@ -55,6 +55,10 @@ STYLES.forEach(s => {
       <img src="art-direction/${s.dir}-menu.jpg" alt="${s.id} menu" loading="lazy">
     </div>
     <div class="px-4 py-2 border-t border-slate-800">
+      <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${s.chip}">${s.id} · in-game sprite sheet</span>
+    </div>
+    <img src="art-direction/sprites/sprite-sheet-${s.dir}.webp" alt="${s.id} sprite sheet" loading="lazy" class="border-t border-slate-800">
+    <div class="px-4 py-2 border-t border-slate-800">
       <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${s.chip}">${s.id} · lounge / logo / menu</span>
     </div>`;
   main.appendChild(el);
