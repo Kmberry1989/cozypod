@@ -77,6 +77,34 @@
             height: 100%;
             touch-action: none;
         }
+        /* ---------- Collapsible chrome (header/footer auto-hide) ---------- */
+        #appHeader, #appNav {
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.25s ease, padding-top 0.3s ease, padding-bottom 0.3s ease, border-width 0.3s ease;
+        }
+        body.chrome-collapsed #appHeader, body.chrome-collapsed #appNav {
+            opacity: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            border-top-width: 0 !important;
+            border-bottom-width: 0 !important;
+        }
+        /* ---------- Non-gaming interaction lockdown ---------- */
+        html, body {
+            overscroll-behavior: none;
+            touch-action: pan-x pan-y;
+        }
+        body {
+            -webkit-touch-callout: none;
+        }
+        input, textarea, select {
+            -webkit-user-select: text;
+            user-select: text;
+            -webkit-touch-callout: default;
+        }
+        img {
+            -webkit-user-drag: none;
+        }
     </style>
 </head>
 <body class="flex flex-col h-[100dvh] w-full max-w-md md:max-w-4xl mx-auto bg-slate-950 border-x border-slate-800/80 shadow-2xl relative overflow-hidden">
@@ -115,36 +143,36 @@
         </div>
     </div>
 
-    <header class="flex items-center justify-between px-3 py-2 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 z-20 shrink-0">
+    <header id="appHeader" class="flex items-center justify-between px-2 py-1 bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 z-20 shrink-0">
         <div class="flex items-center gap-2">
-            <button onclick="openSplashMenu()" class="btn-game text-xs font-display font-bold uppercase tracking-wider px-2.5 py-1.5 rounded-xl bg-violet-500/20 text-violet-300 border border-violet-500/30 flex items-center gap-1.5">
+            <button onclick="openSplashMenu()" class="btn-game text-xs font-display font-bold uppercase tracking-wider px-2 py-1 rounded-xl bg-violet-500/20 text-violet-300 border border-violet-500/30 flex items-center gap-1.5">
                 <i class="fa-solid fa-gamepad text-[10px]"></i>
                 <span id="headerRoomText">SQUAD-4</span>
             </button>
-            <div id="coinBadge" class="text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-xl flex items-center gap-1">
+            <div id="coinBadge" class="text-xs font-bold text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-xl flex items-center gap-1">
                 <i class="fa-solid fa-coins text-[10px]"></i>
                 <span id="coinCountVal">50</span>
             </div>
         </div>
 
         <div class="flex items-center gap-1.5">
-            <button id="micBtn" onclick="toggleVoiceChat()" class="btn-game px-2.5 h-8 rounded-xl bg-slate-800/90 border border-slate-700/70 text-slate-400 flex items-center gap-1.5 text-xs font-bold">
+            <button id="micBtn" onclick="toggleVoiceChat()" class="btn-game px-2 h-7 rounded-xl bg-slate-800/90 border border-slate-700/70 text-slate-400 flex items-center gap-1.5 text-xs font-bold">
                 <i class="fa-solid fa-microphone-slash" id="micIcon"></i>
                 <span id="micPeerCount" class="hidden text-[10px] bg-emerald-500 text-slate-950 px-1 rounded-full font-extrabold">0</span>
             </button>
-            <button onclick="toggleBgm()" id="bgmBtn" class="btn-game w-8 h-8 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center text-xs">
+            <button onclick="toggleBgm()" id="bgmBtn" class="btn-game w-7 h-7 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center text-xs">
                 <i class="fa-solid fa-music" id="bgmIcon"></i>
             </button>
-            <button onclick="toggleSound()" id="soundBtn" class="btn-game w-8 h-8 rounded-xl bg-slate-800/90 border border-slate-700/70 text-emerald-400 flex items-center justify-center text-xs">
+            <button onclick="toggleSound()" id="soundBtn" class="btn-game w-7 h-7 rounded-xl bg-slate-800/90 border border-slate-700/70 text-emerald-400 flex items-center justify-center text-xs">
                 <i class="fa-solid fa-volume-high" id="soundIcon"></i>
             </button>
-            <button onclick="openDeployModal()" class="btn-game w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center text-xs">
+            <button onclick="openDeployModal()" class="btn-game w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center text-xs">
                 <i class="fa-solid fa-rocket"></i>
             </button>
         </div>
     </header>
 
-    <div class="bg-slate-900/60 border-b border-slate-800/60 px-3 py-1 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar z-10 shrink-0">
+    <div class="bg-slate-900/60 border-b border-slate-800/60 px-2 py-0.5 flex items-center justify-between gap-2 overflow-x-auto no-scrollbar z-10 shrink-0">
         <div id="playerRosterBar" class="flex items-center gap-1.5"></div>
         <div class="flex items-center gap-1 shrink-0">
             <button onclick="throwFunItem('confetti')" class="btn-game w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm flex items-center justify-center border border-slate-700/80">🎉</button>
@@ -153,7 +181,7 @@
         </div>
     </div>
 
-    <div class="bg-slate-950 border-b border-slate-800/60 px-3 py-1 flex items-center gap-2 z-10 shrink-0">
+    <div class="bg-slate-950 border-b border-slate-800/60 px-2 py-0.5 flex items-center gap-2 z-10 shrink-0">
         <span id="xpLevelLabel" class="text-[10px] font-bold text-violet-300 font-display whitespace-nowrap">Lv 1</span>
         <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div id="xpBarFill" class="h-full bg-gradient-to-r from-violet-500 to-fuchsia-400 rounded-full transition-all" style="width:0%"></div></div>
         <span id="xpTextLabel" class="text-[10px] text-slate-400 font-bold whitespace-nowrap">0/100</span>
@@ -208,7 +236,7 @@
         </section>
 
         <!-- VIEW 2: MULTI-GAME ARCADE SUITE (FITS SINGLE SCREEN) -->
-        <section id="view-games" class="hidden flex-1 flex flex-col bg-slate-950 overflow-hidden p-2.5 gap-2">
+        <section id="view-games" class="hidden flex-1 flex flex-col bg-slate-950 overflow-hidden p-2 gap-1.5">
             <!-- Game Selector Carousel Strip -->
             <div class="grid grid-cols-6 gap-1.5 shrink-0 overflow-x-auto no-scrollbar">
                 <button onclick="selectArcadeMode('connect4')" id="gameTab-connect4" class="btn-game py-2 px-2.5 rounded-2xl border flex flex-col items-center justify-center gap-1 bg-violet-600/25 border-violet-500 text-white">
@@ -405,21 +433,29 @@
     </div>
 
     <!-- Bottom Navigation Bar -->
-    <nav class="grid grid-cols-3 gap-1.5 px-3 py-1.5 bg-slate-950 border-t border-slate-800/90 z-20 shrink-0">
-        <button onclick="switchTab('lounge')" id="nav-lounge" class="btn-game flex items-center justify-center gap-1.5 py-2 rounded-xl bg-violet-600/20 text-violet-300 border border-violet-500/40 font-bold text-xs">
+    <nav id="appNav" class="grid grid-cols-3 gap-1 px-2 py-1 bg-slate-950 border-t border-slate-800/90 z-20 shrink-0">
+        <button onclick="switchTab('lounge')" id="nav-lounge" class="btn-game flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-violet-600/20 text-violet-300 border border-violet-500/40 font-bold text-xs">
             <i class="fa-solid fa-couch"></i>
             <span>Lounge</span>
         </button>
-        <button onclick="switchTab('games')" id="nav-games" class="btn-game flex items-center justify-center gap-1.5 py-2 rounded-xl text-slate-400 hover:text-slate-200 border border-transparent font-bold text-xs relative">
+        <button onclick="switchTab('games')" id="nav-games" class="btn-game flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-slate-400 hover:text-slate-200 border border-transparent font-bold text-xs relative">
             <i class="fa-solid fa-gamepad"></i>
             <span>Games</span>
             <span id="navGameDot" class="hidden w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
         </button>
-        <button onclick="switchTab('wardrobe')" id="nav-wardrobe" class="btn-game flex items-center justify-center gap-1.5 py-2 rounded-xl text-slate-400 hover:text-slate-200 border border-transparent font-bold text-xs">
+        <button onclick="switchTab('wardrobe')" id="nav-wardrobe" class="btn-game flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-slate-400 hover:text-slate-200 border border-transparent font-bold text-xs">
             <div id="miniHeaderAvatar" class="w-4 h-4 rounded-full overflow-hidden flex items-center justify-center"></div>
             <span>Style</span>
         </button>
     </nav>
+
+    <!-- Chrome expand pills (visible only while header/footer are collapsed) -->
+    <button id="topChromePill" onclick="expandChrome()" class="hidden fixed top-1 left-1/2 -translate-x-1/2 z-30 px-3 py-0.5 rounded-full bg-slate-800/90 backdrop-blur-md border border-slate-700/80 text-slate-400 text-[10px] shadow-lg">
+        <i class="fa-solid fa-chevron-down"></i>
+    </button>
+    <button id="bottomChromePill" onclick="expandChrome()" class="hidden fixed bottom-1 left-1/2 -translate-x-1/2 z-30 px-3 py-0.5 rounded-full bg-slate-800/90 backdrop-blur-md border border-slate-700/80 text-slate-400 text-[10px] shadow-lg">
+        <i class="fa-solid fa-chevron-up"></i>
+    </button>
 
     <!-- MODAL 1: SHARED PIXEL GRAFFITI WALL -->
     <div id="pixelWallModal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -1347,6 +1383,7 @@
             playTone('win');
             initWardrobeUI();
             renderRosterBar();
+            expandChrome();
         };
 
         window.openDeployModal = function() {
@@ -1508,7 +1545,72 @@
         }
         applySaveData();
 
+        /* ---------- Collapsible chrome: header/footer auto-hide ---------- */
+        const CHROME_IDLE_MS = 3000;
+        let chromeIdleTimer = null;
+        const appHeaderEl = document.getElementById('appHeader');
+        const appNavEl = document.getElementById('appNav');
+        const topPillEl = document.getElementById('topChromePill');
+        const bottomPillEl = document.getElementById('bottomChromePill');
+
+        function loungeActive() {
+            const sp = document.getElementById('splashScreen');
+            return sp && sp.classList.contains('hidden');
+        }
+        function syncChromeHeights() {
+            const collapsed = document.body.classList.contains('chrome-collapsed');
+            [appHeaderEl, appNavEl].forEach(function(el) {
+                if (!el) return;
+                el.style.maxHeight = 'none';
+                const full = el.scrollHeight;
+                el.style.maxHeight = collapsed ? '0px' : full + 'px';
+            });
+        }
+        function setChromeCollapsed(collapsed) {
+            document.body.classList.toggle('chrome-collapsed', collapsed);
+            if (topPillEl) topPillEl.classList.toggle('hidden', !collapsed);
+            if (bottomPillEl) bottomPillEl.classList.toggle('hidden', !collapsed);
+            syncChromeHeights();
+        }
+        function restartChromeIdle() {
+            clearTimeout(chromeIdleTimer);
+            chromeIdleTimer = setTimeout(function() {
+                if (loungeActive()) setChromeCollapsed(true);
+            }, CHROME_IDLE_MS);
+        }
+        window.expandChrome = function() { setChromeCollapsed(false); restartChromeIdle(); };
+        window.collapseChrome = function() { if (loungeActive()) setChromeCollapsed(true); };
+
+        function chromeInputHandler(e) {
+            if (!loungeActive()) return;
+            const t = e.target;
+            const onChrome = t && t.closest && t.closest('#appHeader, #appNav, #topChromePill, #bottomChromePill');
+            if (onChrome) { restartChromeIdle(); return; }
+            setChromeCollapsed(true);
+            restartChromeIdle();
+        }
+        ['pointerdown', 'wheel', 'keydown'].forEach(function(evt) {
+            document.addEventListener(evt, chromeInputHandler, { capture: true, passive: true });
+        });
+        window.addEventListener('resize', syncChromeHeights);
+
+        /* ---------- Non-gaming interaction lockdown ---------- */
+        document.addEventListener('contextmenu', function(e) {
+            if (e.target && e.target.closest && e.target.closest('input, textarea, select')) return;
+            e.preventDefault();
+        });
+        document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = Date.now();
+            if (now - lastTouchEnd < 300 && !(e.target && e.target.closest && e.target.closest('input, textarea, select'))) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+
         window.onload = function() {
+            syncChromeHeights();
             document.getElementById('headerRoomText').textContent = currentRoomCode;
             document.getElementById('splashRoomInput').value = currentRoomCode;
             document.getElementById('splashAvatarPreview').innerHTML = buildAvatarSVG(myPlayer, 44);
