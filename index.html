@@ -109,11 +109,10 @@
 </head>
 <body class="flex flex-col h-[100dvh] w-full max-w-md md:max-w-4xl mx-auto bg-slate-950 border-x border-slate-800/80 shadow-2xl relative overflow-hidden">
 
-    <div id="splashScreen" class="absolute inset-0 bg-slate-950/98 backdrop-blur-xl z-50 flex flex-col items-center justify-center p-6 text-center animate-pop">
-        <div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-violet-500 via-fuchsia-500 to-amber-500 flex items-center justify-center shadow-2xl shadow-violet-500/30 mb-3 animate-float">
-            <i class="fa-solid fa-gamepad text-white text-2xl"></i>
-        </div>
-        <h1 class="font-display font-extrabold text-2xl text-white tracking-wider mb-1">COZYPOD</h1>
+    <div id="splashScreen" class="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center animate-pop overflow-hidden" style="background:#020617 url('art/brand/splash-bg.jpg') center/cover no-repeat;">
+        <div class="absolute inset-0 bg-slate-950/55 pointer-events-none"></div>
+        <div class="relative flex flex-col items-center w-full">
+        <img src="art/brand/logo-clay.png" alt="CozyPod" class="w-40 h-40 object-contain animate-float -mb-2">
         <p class="text-xs text-slate-400 mb-5">Private 4-Player Lounge & Turn Arcade</p>
 
         <div class="w-full max-w-xs space-y-2.5 mb-5">
@@ -140,6 +139,7 @@
                 <i class="fa-brands fa-google text-amber-400"></i>
                 <span id="googleAuthText">Sign In with Google</span>
             </button>
+        </div>
         </div>
     </div>
 
