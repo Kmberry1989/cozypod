@@ -399,11 +399,11 @@
             <div class="flex-1 bg-slate-900/70 border border-slate-800 rounded-2xl p-2.5 flex flex-col justify-between overflow-y-auto gap-2">
                 <div class="flex items-center gap-2">
                     <span class="text-sm w-5 text-center">🎨</span>
-                    <div id="colorPickerRow" class="flex flex-1 justify-between gap-1"></div>
+                    <div id="colorPickerRow" class="flex flex-1 justify-start gap-1.5"></div>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-sm w-5 text-center">🌱</span>
-                    <div id="outfitPickerRow" class="flex flex-1 justify-between gap-1"></div>
+                    <div id="outfitPickerRow" class="flex flex-1 justify-start gap-1.5"></div>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-sm w-5 text-center">😊</span>
@@ -1390,13 +1390,27 @@
             }
         };
 
+        const loungeBgImg = new Image(); loungeBgImg.src = 'art/lounge/backdrop.jpg';
+        const CLAY_PART_IMGS = {};
+        ['body-mint','body-teal','body-lime','body-lilac','sprout-leaf','sprout-flower','sprout-mushroom','face-happy','face-sleepy','face-starry'].forEach(function(n) {
+            const im = new Image(); im.src = 'art/podling/' + n + '.png'; CLAY_PART_IMGS[n] = im;
+        });
+        function clayImgReady(n) { const im = CLAY_PART_IMGS[n]; return im && im.complete && im.naturalWidth > 0; }
+
         function renderLobbyLoop() {
             const rect = canvas.parentElement.getBoundingClientRect();
             const w = rect.width, h = rect.height;
             if (w === 0 || h === 0) { requestAnimationFrame(renderLobbyLoop); return; }
 
-            ctx.fillStyle = '#0f172a';
-            ctx.fillRect(0, 0, w, h);
+            if (loungeBgImg.complete && loungeBgImg.naturalWidth > 0) {
+                const iw = loungeBgImg.naturalWidth, ih = loungeBgImg.naturalHeight;
+                const sc = Math.max(w / iw, h / ih);
+                const dw = iw * sc, dh = ih * sc;
+                ctx.drawImage(loungeBgImg, (w - dw) / 2, (h - dh) / 2, dw, dh);
+            } else {
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, w, h);
+            }
 
             const activePlayers = getRoomPlayers();
             activePlayers.forEach(p => {
@@ -1407,37 +1421,35 @@
                 ctx.save();
                 ctx.translate(px, py);
                 var pfeat = p.features || {};
-                var pbody = PODLING_BODIES.find(function(b) { return b.id === pfeat.body; }) || PODLING_BODIES[0];
-                var psprout = PODLING_SPROUTS.find(function(s) { return s.id === pfeat.sprout; }) || PODLING_SPROUTS[0];
-                ctx.fillStyle = pbody.color;
-                ctx.beginPath();
-                ctx.roundRect(-15, -24, 30, 46, 15);
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(15,23,42,0.35)';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([3, 2.5]);
-                ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(0, 20); ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.fillStyle = '#0f172a';
-                ctx.strokeStyle = '#0f172a';
-                if (pfeat.face === 'sleepy') {
-                    ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.arc(-7, -4, 4, 0.3, Math.PI - 0.3); ctx.stroke();
-                    ctx.beginPath(); ctx.arc(7, -4, 4, 0.3, Math.PI - 0.3); ctx.stroke();
-                } else if (pfeat.face === 'starry') {
-                    ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-                    ctx.fillText('\u2B50', -7, 0); ctx.fillText('\u2B50', 7, 0);
+                var bId = pfeat.body || 'mint', sId = pfeat.sprout || 'leaf', fId = pfeat.face || 'happy';
+                var S = 46;
+                if (clayImgReady('body-' + bId)) {
+                    ctx.drawImage(CLAY_PART_IMGS['body-' + bId], -S / 2, -S / 2 - 1, S, S);
+                    if (sId !== 'none' && clayImgReady('sprout-' + sId)) {
+                        var si = CLAY_PART_IMGS['sprout-' + sId];
+                        var sw = (sId === 'mushroom' ? 0.24 : 0.33) * S;
+                        var sh = si.naturalHeight * sw / si.naturalWidth;
+                        ctx.drawImage(si, -sw / 2, (-S / 2 - 1 + 0.24 * S) - sh, sw, sh);
+                    }
+                    if (clayImgReady('face-' + fId)) {
+                        var fi = CLAY_PART_IMGS['face-' + fId];
+                        var fw = 0.55 * S;
+                        var fh = fi.naturalHeight * fw / fi.naturalWidth;
+                        ctx.drawImage(fi, -fw / 2, -S / 2 - 1 + 0.27 * S, fw, fh);
+                    }
                 } else {
-                    ctx.beginPath(); ctx.arc(-7, -4, 2.6, 0, 7); ctx.fill();
-                    ctx.beginPath(); ctx.arc(7, -4, 2.6, 0, 7); ctx.fill();
+                    ctx.fillStyle = (PODLING_BODIES.find(function(b) { return b.id === bId; }) || PODLING_BODIES[0]).color;
+                    ctx.beginPath();
+                    ctx.roundRect(-15, -24, 30, 46, 15);
+                    ctx.fill();
                 }
-                ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(0, 4, 4, 0.4, Math.PI - 0.4); ctx.stroke();
-                if (psprout.id !== 'none') { ctx.font = '14px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(psprout.icon, 0, -26); }
 
                 ctx.font = 'bold 10px sans-serif';
-                ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(15,23,42,0.85)';
+                ctx.strokeText(p.name, 0, 32);
+                ctx.fillStyle = '#ffffff';
                 ctx.fillText(p.name, 0, 32);
 
                 if (p.emote && p.emoteExpires > Date.now()) {
