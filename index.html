@@ -968,6 +968,9 @@
             trvBuzz: null,
             trvScores: {},
             trvNames: {},
+            trvStreaks: {},
+            trvMatchWinner: null,
+            trvExpiresAt: 0,
             trvUpdatedAt: 0,
             htPromptIndex: 0,
             htVotes: {},
@@ -992,15 +995,73 @@
             { cat: "Pop Culture", q: "What year did arcade pixel games boom?", options: ["1978", "1982", "1991", "1985"], correct: 1 },
             { cat: "Pop Culture", q: "Which fictional city is Batman in?", options: ["Metropolis", "Gotham", "Star City", "Central City"], correct: 1 },
             { cat: "Pop Culture", q: "What animal is the Doge meme?", options: ["Shiba Inu", "Golden Retriever", "Corgi", "Pug"], correct: 0 },
+            { cat: "Pop Culture", q: "Which movie features the Millennium Falcon?", options: ["Star Trek", "Star Wars", "Avatar", "Dune"], correct: 1 },
+            { cat: "Pop Culture", q: "What is Mario's brother named?", options: ["Wario", "Luigi", "Yoshi", "Toad"], correct: 1 },
+            { cat: "Pop Culture", q: "Which app's logo is a ghost?", options: ["Snapchat", "Instagram", "TikTok", "Discord"], correct: 0 },
+            { cat: "Pop Culture", q: "Who painted the Mona Lisa?", options: ["Van Gogh", "Picasso", "Da Vinci", "Monet"], correct: 2 },
+            { cat: "Pop Culture", q: "In which city is Hollywood?", options: ["Los Angeles", "New York", "Miami", "Chicago"], correct: 0 },
+            { cat: "Pop Culture", q: "Which brand makes brick-building toys?", options: ["LEGO", "Mattel", "Hasbro", "Fisher-Price"], correct: 0 },
+            { cat: "Pop Culture", q: "Hakuna Matata is from which movie?", options: ["Aladdin", "Shrek", "The Lion King", "Moana"], correct: 2 },
             { cat: "Science", q: "What planet is known as the Red Planet?", options: ["Venus", "Mars", "Jupiter", "Mercury"], correct: 1 },
             { cat: "Science", q: "How many legs does a spider have?", options: ["6", "8", "10", "12"], correct: 1 },
             { cat: "Science", q: "What gas do plants absorb from the air?", options: ["Oxygen", "Hydrogen", "Carbon dioxide", "Nitrogen"], correct: 2 },
-            { cat: "Gaming", q: "In Pac-Man, what do the ghosts do when you eat a power pellet?", options: ["Speed up", "Turn blue and flee", "Freeze", "Multiply"], correct: 1 },
+            { cat: "Science", q: "What is H2O commonly known as?", options: ["Hydrogen", "Water", "Oxygen", "Salt"], correct: 1 },
+            { cat: "Science", q: "How many planets are in our solar system?", options: ["7", "8", "9", "10"], correct: 1 },
+            { cat: "Science", q: "What force pulls objects toward Earth?", options: ["Magnetism", "Friction", "Gravity", "Electricity"], correct: 2 },
+            { cat: "Science", q: "The center of an atom is called the...?", options: ["Electron", "Neutron", "Nucleus", "Proton"], correct: 2 },
+            { cat: "Science", q: "Which gas do humans need to breathe?", options: ["Carbon dioxide", "Helium", "Nitrogen", "Oxygen"], correct: 3 },
+            { cat: "Science", q: "What is the hardest natural material?", options: ["Gold", "Iron", "Diamond", "Quartz"], correct: 2 },
+            { cat: "Science", q: "How long does Earth take to orbit the Sun?", options: ["1 day", "1 month", "1 year", "10 years"], correct: 2 },
+            { cat: "Gaming", q: "In Pac-Man, what do ghosts do when you eat a power pellet?", options: ["Speed up", "Turn blue and flee", "Freeze", "Multiply"], correct: 1 },
             { cat: "Gaming", q: "Which game features a plumber rescuing a princess?", options: ["Sonic", "Zelda", "Mario", "Kirby"], correct: 2 },
             { cat: "Gaming", q: "What does 'GG' mean at the end of a match?", options: ["Get going", "Good game", "Great goal", "Go get"], correct: 1 },
+            { cat: "Gaming", q: "Which company makes the PlayStation?", options: ["Microsoft", "Nintendo", "Sony", "Sega"], correct: 2 },
+            { cat: "Gaming", q: "In Minecraft, what do Creepers do?", options: ["Explode", "Heal you", "Fly", "Trade"], correct: 0 },
+            { cat: "Gaming", q: "What color is Sonic the Hedgehog?", options: ["Red", "Blue", "Green", "Yellow"], correct: 1 },
+            { cat: "Gaming", q: "Tetris is played with falling...?", options: ["Blocks", "Balls", "Cards", "Coins"], correct: 0 },
+            { cat: "Gaming", q: "Which game has the Victory Royale?", options: ["Fortnite", "Roblox", "Among Us", "Fall Guys"], correct: 0 },
+            { cat: "Gaming", q: "The hero of Zelda is named...?", options: ["Zelda", "Link", "Ganon", "Epona"], correct: 1 },
+            { cat: "Gaming", q: "What is Pokemon short for?", options: ["Pocket Monsters", "Power Beasts", "Mini Bots", "Digital Pets"], correct: 0 },
             { cat: "Food", q: "Which fruit has its seeds on the outside?", options: ["Blueberry", "Strawberry", "Raspberry", "Cherry"], correct: 1 },
             { cat: "Food", q: "Sushi is a cuisine from which country?", options: ["China", "Thailand", "Japan", "Korea"], correct: 2 },
-            { cat: "Sports", q: "How many players are on a basketball team on the court?", options: ["4", "5", "6", "7"], correct: 1 }
+            { cat: "Food", q: "Which fruit is called the king of fruits?", options: ["Durian", "Mango", "Apple", "Banana"], correct: 0 },
+            { cat: "Food", q: "What is the main ingredient in guacamole?", options: ["Tomato", "Avocado", "Pepper", "Onion"], correct: 1 },
+            { cat: "Food", q: "Which country is famous for pizza?", options: ["Italy", "France", "Greece", "Spain"], correct: 0 },
+            { cat: "Food", q: "What makes bread rise?", options: ["Yeast", "Sugar", "Salt", "Flour"], correct: 0 },
+            { cat: "Food", q: "Which drink is made from fermented grapes?", options: ["Beer", "Wine", "Whiskey", "Vodka"], correct: 1 },
+            { cat: "Food", q: "Besides fish, sushi's main ingredient is...?", options: ["Rice", "Noodles", "Bread", "Potato"], correct: 0 },
+            { cat: "Food", q: "Which nut is in Nutella?", options: ["Almond", "Peanut", "Hazelnut", "Cashew"], correct: 2 },
+            { cat: "Food", q: "Saffron comes from...?", options: ["Flower stamens", "Tree bark", "Roots", "Seeds"], correct: 0 },
+            { cat: "Sports", q: "How many players per basketball team are on the court?", options: ["4", "5", "6", "7"], correct: 1 },
+            { cat: "Sports", q: "The soccer World Cup is held every...?", options: ["2 years", "3 years", "4 years", "5 years"], correct: 2 },
+            { cat: "Sports", q: "In tennis, zero points is called...?", options: ["Nil", "Love", "Duck", "Blank"], correct: 1 },
+            { cat: "Sports", q: "How many rings are on the Olympic flag?", options: ["4", "5", "6", "7"], correct: 1 },
+            { cat: "Sports", q: "In golf, one under par is a...?", options: ["Birdie", "Eagle", "Bogey", "Albatross"], correct: 0 },
+            { cat: "Sports", q: "How many bases are there in baseball?", options: ["3", "4", "5", "6"], correct: 1 },
+            { cat: "Sports", q: "A marathon is about how long?", options: ["13 miles", "20 miles", "26 miles", "31 miles"], correct: 2 },
+            { cat: "Sports", q: "The Stanley Cup is awarded in...?", options: ["Basketball", "Football", "Baseball", "Hockey"], correct: 3 },
+            { cat: "Sports", q: "A touchdown is worth how many points?", options: ["3", "6", "7", "2"], correct: 1 },
+            { cat: "Sports", q: "How many players per soccer team are on the field?", options: ["9", "10", "11", "12"], correct: 2 },
+            { cat: "History", q: "In which year did the Berlin Wall fall?", options: ["1987", "1988", "1989", "1991"], correct: 2 },
+            { cat: "History", q: "Ancient Egyptians wrote in...?", options: ["Cuneiform", "Hieroglyphs", "Latin", "Sanskrit"], correct: 1 },
+            { cat: "History", q: "Which ship sank on its maiden voyage in 1912?", options: ["Lusitania", "Titanic", "Britannic", "Queen Mary"], correct: 1 },
+            { cat: "History", q: "The Roman Empire mainly spoke...?", options: ["Greek", "Latin", "Arabic", "Hebrew"], correct: 1 },
+            { cat: "History", q: "Who was the first US President?", options: ["Jefferson", "Adams", "Washington", "Lincoln"], correct: 2 },
+            { cat: "History", q: "The Great Fire of London was in...?", options: ["1606", "1666", "1766", "1866"], correct: 1 },
+            { cat: "History", q: "The ancient Olympic Games were held in...?", options: ["Italy", "Egypt", "Greece", "Turkey"], correct: 2 },
+            { cat: "History", q: "Who invented the printing press?", options: ["Da Vinci", "Gutenberg", "Newton", "Galileo"], correct: 1 },
+            { cat: "History", q: "Which civilization built Machu Picchu?", options: ["Aztec", "Maya", "Inca", "Olmec"], correct: 2 },
+            { cat: "History", q: "World War II ended in...?", options: ["1943", "1944", "1945", "1946"], correct: 2 },
+            { cat: "Music", q: "How many strings does a standard guitar have?", options: ["4", "5", "6", "7"], correct: 2 },
+            { cat: "Music", q: "Which instrument has 88 keys?", options: ["Guitar", "Piano", "Violin", "Flute"], correct: 1 },
+            { cat: "Music", q: "Bohemian Rhapsody is by which band?", options: ["Beatles", "Queen", "ABBA", "Pink Floyd"], correct: 1 },
+            { cat: "Music", q: "Who is known as the King of Pop?", options: ["Elvis", "Prince", "Michael Jackson", "James Brown"], correct: 2 },
+            { cat: "Music", q: "Four musicians playing together are a...?", options: ["Trio", "Quartet", "Quintet", "Duo"], correct: 1 },
+            { cat: "Music", q: "Who wrote and sang Imagine?", options: ["John Lennon", "Paul McCartney", "George Harrison", "Ringo Starr"], correct: 0 },
+            { cat: "Music", q: "Hip-hop was born in which NYC borough?", options: ["Brooklyn", "Queens", "Bronx", "Manhattan"], correct: 2 },
+            { cat: "Music", q: "What does a cappella mean?", options: ["With drums", "Without instruments", "Very loud", "Very fast"], correct: 1 },
+            { cat: "Music", q: "Which instrument is called the mouth organ?", options: ["Harmonica", "Accordion", "Bagpipes", "Didgeridoo"], correct: 0 },
+            { cat: "Music", q: "Elvis Presley's home is called...?", options: ["Neverland", "Graceland", "Paisley Park", "Dollywood"], correct: 1 }
         ];
 
         const HOTTAKE_PROMPTS = [
@@ -1629,7 +1690,7 @@
 
         // --- remote state in ---
         const ROOM_SYNC_KEYS = ['c4Board', 'c4TurnIndex', 'c4Winner', 'c4Players', 'c4WinCells', 'c4Starter', 'c4BotOwner', 'c4UpdatedAt',
-            'trvIndex', 'trvPhase', 'trvBuzz', 'trvScores', 'trvNames', 'trvUpdatedAt',
+            'trvIndex', 'trvPhase', 'trvBuzz', 'trvScores', 'trvNames', 'trvStreaks', 'trvMatchWinner', 'trvExpiresAt', 'trvUpdatedAt',
             'htPromptIndex', 'htVotes', 'htPhase', 'htUpdatedAt', 'roomPlayers',
             'bmbSyllable', 'bmbTurnUid', 'bmbUsedWords', 'bmbScores', 'bmbNames', 'bmbStrikes', 'bmbLastWord', 'bmbOrder', 'bmbPhase', 'bmbRound', 'bmbLastWinner', 'bmbUpdatedAt',
             'mldSequence', 'mldTurnUid', 'mldLives', 'mldNames', 'mldProgress', 'mldOrder', 'mldPhase', 'mldSeqId', 'mldRound', 'mldLastWinner', 'mldUpdatedAt',
@@ -1650,6 +1711,7 @@
             renderReflex();
             maybePlayMelody();
             scheduleReflexGo();
+            scheduleTriviaExpire();
             renderPixelWall();
             renderChatHistory();
             noteIncomingChat();
@@ -1700,17 +1762,25 @@
             if (statusEl) {
                 const scores = s.trvScores || {};
                 const names = s.trvNames || {};
-                const board = Object.keys(scores).map(uid => `${escapeHtml(names[uid] || '???')} ${scores[uid]}`).join(' · ');
+                const streaks = s.trvStreaks || {};
+                const board = Object.keys(scores).map(uid => `${escapeHtml(names[uid] || '???')} ${scores[uid]}${(streaks[uid] || 0) > 1 ? ' 🔥x' + streaks[uid] : ''}`).join(' · ');
+                const mw = s.trvMatchWinner;
                 if (!online) {
                     statusEl.textContent = `Score: ${s.triviaScore || 0}`;
+                } else if (mw) {
+                    statusEl.textContent = `🏆 ${escapeHtml(mw.name)} wins the match!` + (board ? `    ·    ${board}` : '');
+                } else if (revealed && buzz && buzz.expired) {
+                    statusEl.textContent = `⏰ Time's up! It was ${q.options[q.correct]}` + (board ? `    ·    ${board}` : '');
                 } else if (revealed && buzz) {
                     const me = buzz.uid === mySeatUid();
                     statusEl.textContent = (buzz.correct
-                        ? `⚡ ${me ? 'You got' : escapeHtml(buzz.name) + ' got'} it! +100`
+                        ? `⚡ ${me ? 'You got' : escapeHtml(buzz.name) + ' got'} it! +${buzz.pts || 100}`
                         : `💥 ${me ? 'You missed' : escapeHtml(buzz.name) + ' missed'} it!`)
                         + (board ? `    ·    ${board}` : '');
                 } else {
-                    statusEl.textContent = board ? `Scores: ${board}` : 'First to tap an answer scores!';
+                    let prefix = '';
+                    if (s.trvExpiresAt) prefix = `⏱ ${Math.max(0, Math.ceil((s.trvExpiresAt - Date.now()) / 1000))}s · `;
+                    statusEl.textContent = prefix + (board ? `Scores: ${board}` : 'First to tap an answer scores!');
                 }
             }
         }
@@ -1747,12 +1817,23 @@
                     const myName = (myPlayer.name || 'Player').slice(0, 14);
                     const names = { ...(d.trvNames || {}) }; names[myUid] = myName;
                     const scores = { ...(d.trvScores || {}) };
-                    if (correct) scores[myUid] = (scores[myUid] || 0) + 100;
+                    const streaks = { ...(d.trvStreaks || {}) };
+                    let pts = 0, matchWinner = null;
+                    if (correct) {
+                        const streak = (streaks[myUid] || 0) + 1;
+                        streaks[myUid] = streak;
+                        pts = 100 + 25 * (streak - 1);
+                        scores[myUid] = (scores[myUid] || 0) + pts;
+                        if (scores[myUid] >= 1000) matchWinner = { uid: myUid, name: myName };
+                    } else {
+                        streaks[myUid] = 0;
+                    }
                     tx.set(ref, {
-                        trvBuzz: { uid: myUid, name: myName, pick: idx, correct },
-                        trvPhase: 'reveal', trvScores: scores, trvNames: names, trvUpdatedAt: Date.now()
+                        trvBuzz: { uid: myUid, name: myName, pick: idx, correct, pts },
+                        trvPhase: 'reveal', trvScores: scores, trvNames: names, trvStreaks: streaks,
+                        trvMatchWinner: matchWinner, trvUpdatedAt: Date.now()
                     }, { merge: true });
-                    return { ok: true, correct };
+                    return { ok: true, correct, pts, matchWin: !!matchWinner };
                 });
                 if (result && result.ok) {
                     if (result.correct) {
@@ -1760,6 +1841,7 @@
                         arcadeCoins += 10; persistCoins();
                         document.getElementById('coinCountVal').textContent = arcadeCoins;
                         awardXP(20);
+                        if (result.matchWin) onPartyRoundWin(100, 50);
                     } else { playTone('pop'); awardXP(2); }
                 }
             } catch (e) {}
@@ -1778,10 +1860,44 @@
                         let n; do { n = Math.floor(Math.random() * TRIVIA_PACK.length); } while (n === idx);
                         idx = n;
                     }
-                    tx.set(ref, { trvIndex: idx, trvPhase: 'answering', trvBuzz: null, trvUpdatedAt: Date.now() }, { merge: true });
+                    tx.set(ref, {
+                        trvIndex: idx, trvPhase: 'answering', trvBuzz: null,
+                        ...(d.trvMatchWinner ? { trvScores: {}, trvStreaks: {}, trvMatchWinner: null } : {}),
+                        trvExpiresAt: Date.now() + 15000, trvUpdatedAt: Date.now()
+                    }, { merge: true });
                 });
             } catch (e) {}
         };
+
+        let triviaExpireTimer = null;
+        let triviaTickTimer = null;
+        function clearTriviaTimers() {
+            if (triviaExpireTimer) { clearTimeout(triviaExpireTimer); triviaExpireTimer = null; }
+            if (triviaTickTimer) { clearInterval(triviaTickTimer); triviaTickTimer = null; }
+        }
+        function scheduleTriviaExpire() {
+            clearTriviaTimers();
+            const s = sharedGameState;
+            if (!isFirebaseReady || !auth?.currentUser) return;
+            if ((s.trvPhase || 'answering') !== 'answering' || (s.trvBuzz && s.trvBuzz.uid)) return;
+            const exp = s.trvExpiresAt || 0;
+            if (!exp) return;
+            const fire = async () => {
+                try {
+                    await runTransaction(db, async (tx) => {
+                        const ref = roomDoc();
+                        const snap = await tx.get(ref);
+                        const d = snap.exists() ? snap.data() : {};
+                        if ((d.trvPhase || 'answering') !== 'answering' || (d.trvBuzz && d.trvBuzz.uid)) return;
+                        tx.set(ref, { trvPhase: 'reveal', trvBuzz: { uid: null, name: '', pick: -1, correct: false, expired: true }, trvUpdatedAt: Date.now() }, { merge: true });
+                    });
+                } catch (e) {}
+            };
+            const delay = exp - Date.now();
+            if (delay <= 0) { fire(); return; }
+            triviaExpireTimer = setTimeout(fire, delay);
+            triviaTickTimer = setInterval(() => { renderTriviaStage(); }, 1000);
+        }
 
         // ===== MOST-LIKELY-TO VOTE: MULTIPLAYER =====
         function renderHotTakes() {
