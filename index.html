@@ -983,7 +983,9 @@
             melodyPlayerStep: 0,
             reflexState: { status: 'waiting', startTime: 0, winnerName: '' },
             hotTakePrompt: "Most likely to survive on an island with only snacks?",
-            hotTakeVotes: {}
+            hotTakeVotes: {},
+            chatMsgs: [],
+            wallPixels: Array(96).fill('#0f172a')
         };
 
         const TRIVIA_PACK = [
@@ -1631,7 +1633,8 @@
             'htPromptIndex', 'htVotes', 'htPhase', 'htUpdatedAt', 'roomPlayers',
             'bmbSyllable', 'bmbTurnUid', 'bmbUsedWords', 'bmbScores', 'bmbNames', 'bmbStrikes', 'bmbLastWord', 'bmbOrder', 'bmbPhase', 'bmbRound', 'bmbLastWinner', 'bmbUpdatedAt',
             'mldSequence', 'mldTurnUid', 'mldLives', 'mldNames', 'mldProgress', 'mldOrder', 'mldPhase', 'mldSeqId', 'mldRound', 'mldLastWinner', 'mldUpdatedAt',
-            'rfxPhase', 'rfxWinner', 'rfxFouls', 'rfxRound', 'rfxGoAt', 'rfxUpdatedAt'];
+            'rfxPhase', 'rfxWinner', 'rfxFouls', 'rfxRound', 'rfxGoAt', 'rfxUpdatedAt',
+            'chatMsgs', 'wallPixels'];
         function applyRemoteGameState(d) {
             if (!d) return;
             const s = sharedGameState;
@@ -1647,6 +1650,9 @@
             renderReflex();
             maybePlayMelody();
             scheduleReflexGo();
+            renderPixelWall();
+            renderChatHistory();
+            noteIncomingChat();
             const w = s.c4Winner;
             if (w && w !== c4Announced) {
                 c4Announced = w;
@@ -2320,11 +2326,24 @@
 
         // --- STREAMING_CHUNK:Chat & Cloud Sync... ---
         let chatMessages = [];
+        let lastChatTsSeen = 0;
         function renderChatHistory() {
             const box = document.getElementById('chatHistoryBox');
             if (!box) return;
-            box.innerHTML = chatMessages.slice(-6).map(m => `<div><span class="font-bold text-violet-300">${escapeHtml(m.sender)}:</span> ${escapeHtml(m.text)}</div>`).join('');
+            const msgs = (isFirebaseReady && sharedGameState.chatMsgs.length) ? sharedGameState.chatMsgs : chatMessages;
+            box.innerHTML = msgs.slice(-6).map(m => `<div><span class="font-bold text-violet-300">${escapeHtml(m.s || m.sender)}:</span> ${escapeHtml(m.t || m.text)}</div>`).join('');
             box.scrollTop = box.scrollHeight;
+        }
+        function noteIncomingChat() {
+            const msgs = sharedGameState.chatMsgs || [];
+            if (!msgs.length) return;
+            const me = mySeatUid();
+            const times = msgs.map(m => m.ts || 0);
+            if (!lastChatTsSeen) { lastChatTsSeen = Math.max(...times); return; }
+            msgs.forEach(m => {
+                if ((m.ts || 0) > lastChatTsSeen && m.u !== me) playVocalChatBlips(m.t || '', m.s || '');
+            });
+            lastChatTsSeen = Math.max(lastChatTsSeen, ...times);
         }
 
         window.handleSendChat = function(e) {
@@ -2333,9 +2352,25 @@
             const msg = input.value.trim();
             if (!msg) return;
             input.value = '';
-            chatMessages.push({ sender: myPlayer.name, text: msg });
-            renderChatHistory();
             playVocalChatBlips(msg, myPlayer.name);
+            if (isFirebaseReady && auth?.currentUser) {
+                const entry = { s: (myPlayer.name || 'Player').slice(0, 14), t: msg.slice(0, 120), ts: Date.now(), u: mySeatUid() };
+                (async () => {
+                    try {
+                        await runTransaction(db, async (tx) => {
+                            const ref = roomDoc();
+                            const snap = await tx.get(ref);
+                            const d = snap.exists() ? snap.data() : {};
+                            const msgs = Array.isArray(d.chatMsgs) ? d.chatMsgs.slice(-19) : [];
+                            msgs.push(entry);
+                            tx.set(ref, { chatMsgs: msgs }, { merge: true });
+                        });
+                    } catch (err) {}
+                })();
+            } else {
+                chatMessages.push({ sender: myPlayer.name, text: msg });
+                renderChatHistory();
+            }
             syncMyPlayerToCloud(); persistAll(); awardXP(1);
         };
 
@@ -2348,9 +2383,81 @@
             if (tabName === 'wardrobe') initWardrobeUI();
         };
 
-        window.openPixelWallModal = function() { document.getElementById('pixelWallModal').classList.remove('hidden'); playTone('pop'); };
+        const WALL_BG = '#0f172a';
+        const WALL_COLORS = ['#f472b6', '#fb923c', '#facc15', '#4ade80', '#22d3ee', '#818cf8', '#e879f9', '#ffffff', WALL_BG];
+        let wallSelected = WALL_COLORS[0];
+        let wallDirty = new Set();
+        let wallSyncTimer = null;
+        function initPixelWall() {
+            const grid = document.getElementById('pixelWallGrid');
+            if (!grid || grid.dataset.ready) return;
+            grid.dataset.ready = '1';
+            for (let i = 0; i < 96; i++) {
+                const b = document.createElement('button');
+                b.className = 'w-full aspect-square rounded-[3px] border border-white/5';
+                b.style.background = WALL_BG;
+                b.dataset.c = WALL_BG;
+                b.onclick = () => paintPixel(i);
+                grid.appendChild(b);
+            }
+            const pal = document.getElementById('pixelPaletteRow');
+            if (pal) WALL_COLORS.forEach(c => {
+                const s = document.createElement('button');
+                s.className = 'w-6 h-6 rounded-full border-2 ' + (c === wallSelected ? 'border-white' : 'border-slate-700');
+                s.style.background = c;
+                s.setAttribute('aria-label', 'paint color');
+                s.onclick = () => {
+                    wallSelected = c; playTone('pop');
+                    [...pal.children].forEach(x => { x.classList.remove('border-white'); x.classList.add('border-slate-700'); });
+                    s.classList.remove('border-slate-700'); s.classList.add('border-white');
+                };
+                pal.appendChild(s);
+            });
+            renderPixelWall();
+        }
+        function renderPixelWall() {
+            const grid = document.getElementById('pixelWallGrid');
+            if (!grid || !grid.dataset.ready) return;
+            const px = sharedGameState.wallPixels || [];
+            for (let i = 0; i < 96; i++) {
+                const cell = grid.children[i];
+                const col = px[i] || WALL_BG;
+                if (cell.dataset.c !== col) { cell.dataset.c = col; cell.style.background = col; }
+            }
+        }
+        function paintPixel(i) {
+            sharedGameState.wallPixels[i] = wallSelected;
+            wallDirty.add(i);
+            renderPixelWall();
+            playTone('blip');
+            clearTimeout(wallSyncTimer);
+            wallSyncTimer = setTimeout(syncWallPixels, 800);
+        }
+        async function syncWallPixels() {
+            if (!isFirebaseReady || !auth?.currentUser || !wallDirty.size) return;
+            const dirty = [...wallDirty]; wallDirty.clear();
+            try {
+                const ref = roomDoc();
+                await runTransaction(db, async (tx) => {
+                    const snap = await tx.get(ref);
+                    const d = snap.exists() ? snap.data() : {};
+                    const px = (Array.isArray(d.wallPixels) && d.wallPixels.length === 96) ? d.wallPixels.slice() : Array(96).fill(WALL_BG);
+                    dirty.forEach(i => { px[i] = sharedGameState.wallPixels[i] || WALL_BG; });
+                    tx.set(ref, { wallPixels: px }, { merge: true });
+                });
+            } catch (e) {}
+        }
+        window.openPixelWallModal = function() { document.getElementById('pixelWallModal').classList.remove('hidden'); initPixelWall(); playTone('pop'); };
         window.closePixelWallModal = function() { document.getElementById('pixelWallModal').classList.add('hidden'); };
-        window.clearPixelWall = function() { pixelWallData = Array(96).fill('#0f172a'); };
+        window.clearPixelWall = function() {
+            sharedGameState.wallPixels = Array(96).fill(WALL_BG);
+            wallDirty.clear();
+            renderPixelWall();
+            playTone('pop');
+            if (isFirebaseReady && auth?.currentUser) {
+                (async () => { try { await setDoc(roomDoc(), { wallPixels: Array(96).fill(WALL_BG) }, { merge: true }); } catch (e) {} })();
+            }
+        };
 
         window.openSplashMenu = function() { document.getElementById('splashScreen').classList.remove('hidden'); };
         window.enterLoungeFromSplash = function() {
@@ -2419,7 +2526,7 @@
             try {
                 const rest = {};
                 Object.keys(sharedGameState).forEach(k => {
-                    if (k === 'roomPlayers') return;
+                    if (k === 'roomPlayers' || k === 'chatMsgs' || k === 'wallPixels') return;
                     if (k.startsWith('c4') || k.startsWith('trv') || k.startsWith('ht') || k.startsWith('bmb') || k.startsWith('mld') || k.startsWith('rfx')) return;
                     rest[k] = sharedGameState[k];
                 });
