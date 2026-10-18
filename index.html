@@ -315,7 +315,7 @@
                 </div>
 
                 <!-- MINI-GAME: TRIVIA GAME SHOW -->
-                <div id="stage-trivia" class="hidden flex-1 flex flex-col justify-between overflow-hidden gap-2">
+                <div id="stage-trivia" class="hidden flex-1 flex flex-col justify-between overflow-hidden gap-2 rounded-2xl px-2 py-1" style="background:linear-gradient(rgba(2,6,23,0.78),rgba(2,6,23,0.78)), url('art/games/trivia-backdrop.jpg') center/cover no-repeat;">
                     <div class="bg-gradient-to-br from-violet-950 to-slate-900 border border-violet-500/40 rounded-2xl p-3 flex items-center justify-between shrink-0">
                         <span id="triviaCategoryTag" class="text-[10px] font-bold text-violet-300 uppercase tracking-wider">Pop Culture</span>
                         <button onclick="nextTriviaQuestion()" class="btn-game w-7 h-7 rounded-xl bg-violet-500/20 text-violet-200 text-xs flex items-center justify-center">
@@ -1529,9 +1529,9 @@
             const winCells = sharedGameState.c4WinCells || [];
             grid.innerHTML = sharedGameState.c4Board.map((val, idx) => {
                 const win = winCells.includes(idx);
-                const bg = (val === 0 || val === 1) ? `background:${C4_DISC_COLORS[val]};` : '';
                 const ring = win ? 'box-shadow:0 0 0 3px #fff, 0 0 14px #fff;' : '';
-                return `<button onclick="dropConnect4Disc(${idx % 7})" class="aspect-square w-full rounded-full border-2 ${win ? 'border-white' : 'border-slate-800'} bg-slate-900 flex items-center justify-center" style="${bg}${ring}"></button>`;
+                const disc = (val === 0 || val === 1) ? `<img src="art/games/disc-${val === 0 ? 'red' : 'amber'}.png" class="w-full h-full object-contain pointer-events-none" alt="" onerror="this.style.display='none'">` : '';
+                return `<button onclick="dropConnect4Disc(${idx % 7})" class="aspect-square w-full rounded-full border-2 ${win ? 'border-white' : 'border-slate-800'} bg-slate-900 flex items-center justify-center overflow-hidden" style="${ring}">${disc}</button>`;
             }).join('');
         }
 
@@ -2810,9 +2810,8 @@
         }
         function renderTrophyShelf() {
             var row = document.getElementById('trophyShelfRow'); if (!row) return;
-            var icons = (saveData.trophies || []).map(function(t) { return t.t === 'weekly' ? '⭐' : '🏆'; });
-            row.innerHTML = icons.length
-                ? icons.map(function(e) { return '<span>' + e + '</span>'; }).join('')
+            row.innerHTML = (saveData.trophies || []).length
+                ? (saveData.trophies || []).map(function() { return '<img src="art/games/trophy-clay.png" class="w-5 h-5 object-contain" alt="trophy">'; }).join('')
                 : '<span class="text-[10px] text-slate-500">Play to earn</span>';
         }
         function showRewardModal(emoji, title, detail) {
