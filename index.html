@@ -472,6 +472,24 @@
     </button>
 
     <!-- MODAL 1: SHARED PIXEL GRAFFITI WALL -->
+    <div id="stageChooserModal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-xs w-full p-3.5 space-y-2.5 shadow-2xl animate-pop">
+            <div class="flex items-center justify-between">
+                <span class="font-display font-bold text-sm text-white flex items-center gap-1.5">
+                    <span class="text-base">\U0001F3A4</span> Stage
+                </span>
+                <button onclick="closeStageChooser()" class="w-7 h-7 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <button onclick="chooseStageGame('trivia')" class="btn-game w-full py-3 rounded-2xl bg-violet-600/25 border border-violet-500/50 text-white font-bold text-sm flex items-center justify-center gap-2">
+                <span class="text-lg">\U0001F3A4</span> Trivia Game Show
+            </button>
+            <button onclick="chooseStageGame('hottakes')" class="btn-game w-full py-3 rounded-2xl bg-fuchsia-600/25 border border-fuchsia-500/50 text-white font-bold text-sm flex items-center justify-center gap-2">
+                <span class="text-lg">\U0001F5E3\uFE0F</span> Most Likely To
+            </button>
+        </div>
+    </div>
     <div id="pixelWallModal" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-3.5 space-y-3 shadow-2xl animate-pop">
             <div class="flex items-center justify-between">
@@ -1369,8 +1387,15 @@
 
         canvas.addEventListener('pointerdown', (e) => {
             const rect = canvas.getBoundingClientRect();
-            myPlayer.targetX = Math.max(0.1, Math.min(0.9, (e.clientX - rect.left) / rect.width));
-            myPlayer.targetY = Math.max(0.22, Math.min(0.86, (e.clientY - rect.top) / rect.height));
+            const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+            const hit = LOUNGE_PLACES.find(function(pl) {
+                const pt = loungePlacePx(pl, rect.width, rect.height);
+                return Math.hypot(cx - pt[0], cy - pt[1]) < 36;
+            });
+            if (hit) { goToPlace(hit.id); return; }
+            pendingPlace = null;
+            myPlayer.targetX = Math.max(0.1, Math.min(0.9, cx / rect.width));
+            myPlayer.targetY = Math.max(0.22, Math.min(0.86, cy / rect.height));
             playTone('pop');
             syncMyPlayerToCloud(); persistAll();
         });
@@ -1390,12 +1415,51 @@
             }
         };
 
-        const loungeBgImg = new Image(); loungeBgImg.src = 'art/lounge/backdrop.jpg';
+        const loungeBgImg = new Image(); loungeBgImg.src = 'art/lounge/venue.jpg';
         const CLAY_PART_IMGS = {};
         ['body-mint','body-teal','body-lime','body-lilac','sprout-leaf','sprout-flower','sprout-mushroom','face-happy','face-sleepy','face-starry'].forEach(function(n) {
             const im = new Image(); im.src = 'art/podling/' + n + '.png'; CLAY_PART_IMGS[n] = im;
         });
         function clayImgReady(n) { const im = CLAY_PART_IMGS[n]; return im && im.complete && im.naturalWidth > 0; }
+
+        const LOUNGE_PLACES = [
+            { id: 'arcade',   icon: '\U0001F579\uFE0F', fx: 0.20, fy: 0.60, tx: 0.27, ty: 0.80 },
+            { id: 'graffiti', icon: '\U0001F9F1',       fx: 0.15, fy: 0.33, tx: 0.24, ty: 0.60 },
+            { id: 'stage',    icon: '\U0001F3A4',       fx: 0.68, fy: 0.44, tx: 0.58, ty: 0.74 },
+            { id: 'vanity',   icon: '\U0001FA9E',       fx: 0.84, fy: 0.56, tx: 0.76, ty: 0.80 }
+        ];
+        let pendingPlace = null;
+        function loungeCoverMap(w, h) {
+            const iw = loungeBgImg.naturalWidth || 1, ih = loungeBgImg.naturalHeight || 1;
+            const sc = Math.max(w / iw, h / ih);
+            return { dw: iw * sc, dh: ih * sc, w, h };
+        }
+        function loungePlacePx(pl, w, h) {
+            const m = loungeCoverMap(w, h);
+            return [(w - m.dw) / 2 + pl.fx * m.dw, (h - m.dh) / 2 + pl.fy * m.dh];
+        }
+        window.goToPlace = function(id) {
+            const pl = LOUNGE_PLACES.find(p => p.id === id);
+            if (!pl || !myPlayer) return;
+            pendingPlace = id;
+            myPlayer.targetX = pl.tx; myPlayer.targetY = pl.ty;
+            playTone('pop');
+            syncMyPlayerToCloud(); persistAll();
+        };
+        function openPlace(id) {
+            playTone('win');
+            if (id === 'arcade') { switchTab('games'); selectArcadeMode('connect4'); }
+            else if (id === 'vanity') { switchTab('style'); }
+            else if (id === 'graffiti') { openPixelWallModal(); }
+            else if (id === 'stage') { document.getElementById('stageChooserModal').classList.remove('hidden'); }
+        }
+        window.chooseStageGame = function(k) {
+            document.getElementById('stageChooserModal').classList.add('hidden');
+            switchTab('games'); selectArcadeMode(k);
+        };
+        window.closeStageChooser = function() {
+            document.getElementById('stageChooserModal').classList.add('hidden');
+        };
 
         function renderLobbyLoop() {
             const rect = canvas.parentElement.getBoundingClientRect();
@@ -1411,6 +1475,22 @@
                 ctx.fillStyle = '#0f172a';
                 ctx.fillRect(0, 0, w, h);
             }
+
+            const tNow = performance.now() / 1000;
+            LOUNGE_PLACES.forEach(function(pl) {
+                const pt = loungePlacePx(pl, w, h);
+                const mx = pt[0], my = pt[1];
+                const pulse = (Math.sin(tNow * 3 + pl.fx * 20) + 1) / 2;
+                ctx.beginPath(); ctx.arc(mx, my, 15 + pulse * 5, 0, 7);
+                ctx.fillStyle = 'rgba(167,139,250,' + (0.16 + pulse * 0.14).toFixed(3) + ')';
+                ctx.fill();
+                ctx.beginPath(); ctx.arc(mx, my, 4, 0, 7);
+                ctx.fillStyle = 'rgba(196,181,253,0.9)';
+                ctx.fill();
+                ctx.font = '22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(pl.icon, mx, my - 22 + Math.sin(tNow * 2 + pl.fx * 20) * 3);
+            });
+            ctx.textBaseline = 'alphabetic';
 
             const activePlayers = getRoomPlayers();
             activePlayers.forEach(p => {
@@ -1458,6 +1538,14 @@
                 }
                 ctx.restore();
             });
+
+            if (pendingPlace && myPlayer) {
+                const ptx = myPlayer.targetX ?? myPlayer.x, pty = myPlayer.targetY ?? myPlayer.y;
+                if (Math.hypot(myPlayer.x - ptx, myPlayer.y - pty) < 0.03) {
+                    const pid = pendingPlace; pendingPlace = null;
+                    openPlace(pid);
+                }
+            }
 
             requestAnimationFrame(renderLobbyLoop);
         }
