@@ -476,7 +476,7 @@
         <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-xs w-full p-3.5 space-y-2.5 shadow-2xl animate-pop">
             <div class="flex items-center justify-between">
                 <span class="font-display font-bold text-sm text-white flex items-center gap-1.5">
-                    <span class="text-base">\U0001F3A4</span> Stage
+                    <span class="text-base">🎤</span> Stage
                 </span>
                 <button onclick="closeStageChooser()" class="w-7 h-7 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center">
                     <i class="fa-solid fa-xmark"></i>
@@ -1390,7 +1390,7 @@
             const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
             const hit = LOUNGE_PLACES.find(function(pl) {
                 const pt = loungePlacePx(pl, rect.width, rect.height);
-                return Math.hypot(cx - pt[0], cy - pt[1]) < 36;
+                return Math.hypot(cx - pt[0], cy - pt[1]) < 48;
             });
             if (hit) { goToPlace(hit.id); return; }
             pendingPlace = null;
@@ -1423,10 +1423,10 @@
         function clayImgReady(n) { const im = CLAY_PART_IMGS[n]; return im && im.complete && im.naturalWidth > 0; }
 
         const LOUNGE_PLACES = [
-            { id: 'arcade',   icon: '\U0001F579\uFE0F', fx: 0.20, fy: 0.60, tx: 0.27, ty: 0.80 },
-            { id: 'graffiti', icon: '\U0001F9F1',       fx: 0.15, fy: 0.33, tx: 0.24, ty: 0.60 },
-            { id: 'stage',    icon: '\U0001F3A4',       fx: 0.68, fy: 0.44, tx: 0.58, ty: 0.74 },
-            { id: 'vanity',   icon: '\U0001FA9E',       fx: 0.84, fy: 0.56, tx: 0.76, ty: 0.80 }
+            { id: 'arcade',   icon: '🕹️', fx: 0.20, fy: 0.60, tx: 0.27, ty: 0.80 },
+            { id: 'graffiti', icon: '🧱',       fx: 0.15, fy: 0.33, tx: 0.24, ty: 0.60 },
+            { id: 'stage',    icon: '🎤',       fx: 0.68, fy: 0.44, tx: 0.58, ty: 0.74 },
+            { id: 'vanity',   icon: '🪞',       fx: 0.84, fy: 0.56, tx: 0.76, ty: 0.80 },
         ];
         let pendingPlace = null;
         function loungeCoverMap(w, h) {
@@ -1449,7 +1449,7 @@
         function openPlace(id) {
             playTone('win');
             if (id === 'arcade') { switchTab('games'); selectArcadeMode('connect4'); }
-            else if (id === 'vanity') { switchTab('style'); }
+            else if (id === 'vanity') { switchTab('wardrobe'); }
             else if (id === 'graffiti') { openPixelWallModal(); }
             else if (id === 'stage') { document.getElementById('stageChooserModal').classList.remove('hidden'); }
         }
