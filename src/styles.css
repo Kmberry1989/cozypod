@@ -59,7 +59,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 /* Join */
 .join-screen { min-height: 100dvh; position: relative; overflow: hidden; display: grid; place-items: center; padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom)); background: #432317; }
-.join-scenery { position: absolute; inset: 0; background: url('../art/v2/lounge-rainy.webp') center 41% / cover no-repeat; filter: saturate(.88) brightness(.56); transform: scale(1.03); }
+.join-scenery { position: absolute; inset: 0; background: url('/art/v2/lounge-rainy.webp') center 41% / cover no-repeat; filter: saturate(.88) brightness(.56); transform: scale(1.03); }
 .join-scenery::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(38, 17, 10, .1), rgba(39, 18, 12, .52) 50%, rgba(38, 17, 11, .88)); }
 .join-content { position: relative; z-index: 1; width: min(100%, 390px); display: flex; flex-direction: column; align-items: center; text-align: center; }
 .join-logo { width: min(78vw, 305px); height: 118px; object-fit: contain; filter: drop-shadow(0 12px 18px rgba(36, 14, 7, .35)); margin-bottom: -6px; }
@@ -162,7 +162,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .ready-button.is-ready { background: #68956a; }
 .queue-list { min-height: 38px; display: flex; gap: 5px; overflow-x: auto; padding: 8px 0; }
 .queue-list p { color: var(--muted); font-size: 10px; margin: auto; }
-.queue-list span { flex: none; border-radius: 9px; padding: 6px 8px; background: #ebcfaa; font-size: 9px; font-weight: 900; }
+.queue-list span { flex: none; display: flex; align-items: center; gap: 5px; border-radius: 9px; padding: 4px 5px 4px 8px; background: #ebcfaa; font-size: 9px; font-weight: 900; }
+.queue-list span button { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 7px; color: #84543d; background: rgba(255,255,255,.48); font: 900 14px/1 sans-serif; }
 .party-game-picks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px; }
 .party-game-picks button { min-height: 51px; border: 1px solid var(--line); border-radius: 11px; background: #fff8e8; color: var(--ink); font-size: 8px; font-weight: 900; }
 .party-game-picks span { display: block; font-size: 16px; }
@@ -182,10 +183,15 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .game-shelf button { flex: 0 0 57px; border: 0; color: #fff0da; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 900; }
 .game-shelf button > span { width: 48px; height: 48px; border-radius: 16px; border: 3px solid rgba(255, 242, 220, .26); background: var(--token); display: grid; place-items: center; color: #fff8e9; font: 900 21px/1 'Baloo 2'; box-shadow: inset 0 -5px 0 rgba(65, 30, 18, .18), 0 5px 8px rgba(41, 17, 10, .2); transition: transform .15s ease; }
 .game-shelf button.active > span { border-color: #fff0ce; transform: translateY(-3px) rotate(-2deg); box-shadow: inset 0 -5px 0 rgba(65, 30, 18, .18), 0 8px 12px rgba(41, 17, 10, .35); }
+.game-shelf button:disabled:not(.active) { opacity: .42; filter: saturate(.45); }
 .game-shelf small { max-width: 60px; font-size: 8px; line-height: 1; }
 .game-rules { margin: 0 12px 8px; padding: 9px 11px; border: 1px solid #d6ad78; border-radius: 12px; background: #fff1d7; color: var(--ink); box-shadow: var(--shadow-small); }
 .game-rules strong { font: 800 13px/1 'Baloo 2'; }
 .game-rules p { margin: 3px 0 0; color: var(--muted); font-size: 9px; font-weight: 800; }
+.party-round-bar { margin: 8px 12px 0; padding: 7px 9px; display: flex; align-items: center; justify-content: space-between; gap: 9px; border: 1px solid #d4a469; border-radius: 12px; color: #5e3927; background: #ffe9c5; box-shadow: var(--shadow-small); }
+.party-round-bar span { display: grid; }.party-round-bar strong { font: 800 11px/1 'Baloo 2'; }.party-round-bar small { margin-top: 2px; color: var(--muted); font-size: 8px; font-weight: 800; }
+.party-round-bar button { flex: none; border: 0; border-radius: 9px; padding: 7px 10px; color: white; background: #b75a3e; font-size: 9px; font-weight: 900; box-shadow: inset 0 -2px 0 rgba(66,25,14,.18); }
+.party-round-bar button:disabled { color: #8a6a55; background: #ddc6a6; box-shadow: none; }
 .active-game { min-height: calc(100% - 163px); padding: 11px; background: #f1d8b6; }
 .game-stage { min-height: 100%; border-radius: 23px; padding: 13px; background: #fff3dc; border: 2px solid #dfbd8e; box-shadow: inset 0 -5px 0 rgba(125, 73, 42, .08), var(--shadow-small); }
 .game-waiting { min-height: 360px; display: grid; place-content: center; justify-items: center; gap: 7px; padding: 30px; color: #7a503b; text-align: center; }
@@ -246,6 +252,34 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .reflex-button.wait { background: radial-gradient(circle at 42% 35%, #88746b, #4c403c 72%); }
 .reflex-button.go { background: radial-gradient(circle at 42% 35%, #9bd67f, #4e9657 72%); animation: pulse .55s infinite alternate; }
 .reflex-button span { font: 900 28px/1 'Baloo 2'; }
+.pairs-stage { color: #fff5df; border-color: #594478; background: radial-gradient(circle at 50% 16%, #6c5792, #322b55 76%); }
+.pairs-stage .game-title-row p { color: #d6cce9; }.pairs-stage .game-title-row button { color: #fff4d7; background: rgba(255,255,255,.12); }
+.pairs-score { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 10px 0; }
+.pairs-score span { padding: 6px 9px; border-radius: 10px; color: #e9def7; background: rgba(31,23,52,.45); font-size: 8px; font-weight: 900; }
+.pairs-score span:last-child { color: #ffdc72; letter-spacing: .08em; }
+.pairs-score b { color: #fff7dd; font-size: 11px; }
+.pairs-board { width: min(100%, 400px); display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0 auto 12px; perspective: 900px; }
+.pairs-board button { position: relative; min-width: 0; aspect-ratio: .86; padding: 0; border: 3px solid #a98bc5; border-radius: 15px; color: #fff4cf; background: linear-gradient(145deg, #8870ae, #594575); box-shadow: inset 0 -7px 0 rgba(40,27,58,.2), 0 5px 0 #261e3f, 0 8px 12px rgba(20,15,34,.28); overflow: hidden; transform-style: preserve-3d; transition: transform .22s ease, border-color .22s ease, background .22s ease; }
+.pairs-board button:not(:disabled):hover { transform: translateY(-2px) rotate(-1deg); border-color: #f4d977; }
+.pairs-board button.showing { border-color: #ffd96a; background: linear-gradient(145deg, #fff3cc, #e7b969); transform: translateY(3px); box-shadow: inset 0 -4px 0 rgba(104,64,35,.12), 0 2px 0 #64412e, 0 0 16px rgba(255,218,105,.42); }
+.pairs-board button.matched { border-color: #96d27a; background: linear-gradient(145deg, #eff2c2, #aed079); filter: saturate(.82); }
+.pair-card-back, .pair-card-front { position: absolute; inset: 0; display: grid; place-items: center; }
+.pair-card-back { color: #f9df86; font: 900 26px/1 'Baloo 2'; text-shadow: 0 0 10px rgba(255,221,105,.5); }
+.pair-card-front { align-content: center; gap: 1px; opacity: 0; transform: scale(.72) rotate(-7deg); transition: opacity .16s ease, transform .2s ease; }
+.pair-card-front b { font-size: clamp(22px, 6vw, 36px); filter: drop-shadow(0 3px 2px rgba(68,39,28,.2)); }.pair-card-front small { color: #6b4231; font-size: 7px; font-weight: 900; }
+.pairs-board button.showing .pair-card-back { opacity: 0; }.pairs-board button.showing .pair-card-front { opacity: 1; transform: scale(1) rotate(0); }
+.garden-stage { color: #fff6dc; border-color: #3d6b4b; background: radial-gradient(circle at 50% 14%, #477958, #1e4334 78%); overflow: hidden; }
+.garden-stage .game-title-row p { color: #c7dfc1; }.garden-stage .game-title-row button { color: #fff5d4; background: rgba(255,255,255,.12); }
+.garden-score { display: flex; justify-content: center; gap: 7px; margin: 11px 0; }
+.garden-score span { padding: 6px 10px; border-radius: 10px; color: #d2e8ca; background: rgba(18,51,37,.48); font-size: 8px; font-weight: 900; }.garden-score b { color: #fff6d7; font-size: 11px; }
+.garden-board { width: min(100%, 385px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 0 auto; padding: 9px; border: 6px solid #7e5534; border-radius: 22px; background: #33281d; box-shadow: inset 0 0 0 2px #ac7a4c, 0 8px 0 #241b17, 0 15px 24px rgba(10,29,20,.35); }
+.garden-board button { position: relative; min-width: 0; padding: 0; border: 2px solid #35583c; border-radius: 13px; background: radial-gradient(circle at 50% 48%, #3c5940, #263e30 74%); box-shadow: inset 0 -5px 0 rgba(14,32,22,.22); transition: transform .16s ease, background .2s ease, box-shadow .2s ease; }
+.garden-board button::after { content: ''; position: absolute; inset: 13%; border-radius: 50%; border: 1px dashed rgba(177,207,149,.12); }
+.garden-board button.blooming { border-color: #a9cc6d; background: radial-gradient(circle at 50% 45%, #dce88b, #6d9e55 68%, #3f7048 72%); box-shadow: inset 0 -5px 0 rgba(41,80,42,.16), 0 0 15px rgba(213,235,126,.34); }
+.garden-board button:not(:disabled):active { transform: scale(.92); }.garden-board button:disabled { opacity: 1; }
+.garden-board span { position: relative; z-index: 1; color: #829b6b; font: 900 clamp(18px, 7vw, 34px)/1 'Baloo 2'; text-shadow: 0 2px 0 rgba(30,54,31,.2); }
+.garden-board .blooming span { color: #fff1a4; text-shadow: 0 2px 0 #6e8a42, 0 0 8px #f8f0a5; animation: garden-glow 1.4s ease-in-out infinite alternate; }
+.garden-tip { margin: 10px 0 3px; color: #abc9a8; text-align: center; font-size: 8px; font-weight: 800; }
 .takes-stage > h3 { min-height: 68px; margin: 12px 0; padding: 13px; border-radius: 15px; background: #8b5c48; color: #fff5e6; font: 800 17px/1.2 'Baloo 2'; display: grid; place-items: center; text-align: center; }
 .candidate-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-bottom: 10px; }
 .candidate-grid button { border: 2px solid #e4c497; border-radius: 14px; background: #fff8e8; padding: 7px; display: grid; grid-template-columns: auto 1fr; align-items: center; color: var(--ink); text-align: left; }
@@ -254,7 +288,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 /* Lantern Keepers */
 .lantern-stage { background: radial-gradient(circle at 50% 26%, #294b57, #182c35 70%); color: #fff4df; border-color: #4a727c; position: relative; overflow: hidden; }
-.lantern-stage::before { content: ''; position: absolute; inset: 0; background: url('../art/v2/lounge-rainy.webp') center/cover; opacity: .2; mix-blend-mode: luminosity; pointer-events: none; }
+.lantern-stage::before { content: ''; position: absolute; inset: 0; background: url('/art/v2/lounge-rainy.webp') center/cover; opacity: .2; mix-blend-mode: luminosity; pointer-events: none; }
 .lantern-stage > * { position: relative; z-index: 1; }
 .lantern-stage .game-title-row p { color: #b9d1d5; }
 .lantern-timer { width: 49px; height: 39px; display: grid; place-items: center; border-radius: 12px; background: rgba(255,255,255,.12); font-weight: 900; }
@@ -266,7 +300,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .lantern-slot.in-danger { border-color: #ffd06a; animation: shake .35s infinite alternate; background: rgba(251, 194, 76, .1); }
 .lantern-slot > i { position: absolute; top: 8px; right: 9px; width: 34px; height: 34px; border-radius: 50%; background: #eff5f1; color: #3f7885; display: grid; place-items: center; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
 .lantern-slot > small { position: absolute; bottom: 7px; left: 0; right: 0; font-weight: 900; }
-.lantern-sprite { display: block; width: 105px; height: 105px; margin: 3px auto 18px; background-image: url('../art/v2/lantern-keepers.webp'); background-size: 500% 300%; background-repeat: no-repeat; filter: drop-shadow(0 7px 7px rgba(0,0,0,.4)); }
+.lantern-sprite { display: block; width: 105px; height: 105px; margin: 3px auto 18px; background-image: url('/art/v2/lantern-keepers.webp'); background-size: 500% 300%; background-repeat: no-repeat; filter: drop-shadow(0 7px 7px rgba(0,0,0,.4)); }
 .lantern-0 .lantern-sprite { background-position: 0% 0%; }.lantern-1 .lantern-sprite { background-position: 25% 0%; }.lantern-2 .lantern-sprite { background-position: 50% 0%; }.lantern-3 .lantern-sprite { background-position: 75% 0%; }
 .lantern-0 .state-dim { background-position: 0% 50%; }.lantern-1 .state-dim { background-position: 25% 50%; }.lantern-2 .state-dim { background-position: 50% 50%; }.lantern-3 .state-dim { background-position: 75% 50%; }
 
@@ -326,10 +360,15 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .market-baskets section { min-height: 47px; display: flex; align-items: center; gap: 2px; margin-top: 4px; padding: 3px; border-radius: 9px; background: rgba(255,226,179,.1); }
 .market-baskets section .market-art { width: 43px; height: 43px; margin: 0; }.market-baskets em { margin: auto; color: #cba681; font-size: 8px; font-style: normal; font-weight: 800; }
 
+.party-recap { min-height: 390px; display: grid; align-content: center; justify-items: center; gap: 8px; text-align: center; background: radial-gradient(circle at 50% 20%, #fff4cc, #e8bd7d); }
+.party-recap > span { font-size: 48px; filter: drop-shadow(0 5px 2px rgba(83,45,24,.2)); }.party-recap h2 { margin: 0; font: 800 28px/1 'Baloo 2'; }.party-recap > p { margin: 0 0 4px; color: var(--muted); font-size: 10px; font-weight: 800; }
+.party-recap > div { width: min(100%, 340px); display: grid; gap: 6px; }.party-recap section { display: flex; justify-content: space-between; padding: 9px 11px; border-radius: 11px; color: #623d29; background: rgba(255,255,255,.58); font-size: 10px; }.party-recap .stage-action { width: min(100%, 340px); margin-top: 4px; }
+
 @keyframes pulse-leaf { to { transform: scale(1.18); opacity: .65; } }
+@keyframes garden-glow { to { transform: scale(1.08) rotate(4deg); filter: brightness(1.08); } }
 
 /* Wardrobe */
-.wardrobe-preview { min-height: 305px; position: relative; padding: 12px 42px 0; display: flex; align-items: center; justify-content: center; background: url('../art/v2/lounge-rainy.webp') center 69% / cover; overflow: hidden; }
+.wardrobe-preview { min-height: 305px; position: relative; padding: 12px 42px 0; display: flex; align-items: center; justify-content: center; background: url('/art/v2/lounge-rainy.webp') center 69% / cover; overflow: hidden; }
 .wardrobe-preview::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(83,42,26,.18)); pointer-events: none; }
 .wardrobe-preview > button { z-index: 4; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #fff2dc; color: #573728; box-shadow: var(--shadow-small); flex: none; }
 .preview-plinth { position: relative; z-index: 3; flex: 1; min-width: 0; height: 245px; display: flex; align-items: center; justify-content: center; }

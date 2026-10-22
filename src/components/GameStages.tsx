@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Check, CloudRain, Flame, RotateCcw, Sparkles, Wind } from 'lucide-react';
 import { hotTakePrompts, trivia, wordSyllables } from '../data';
-import { activeLanternEvents, bridgeTileMask, melodyTap, nextTriviaQuestion, reflexTap, reversiScores, reversiValidMoves, scoreMarketInventory, validBridgePlacements, validateWord, type LanternHazard } from '../gameEngine';
+import { activeLanternEvents, bridgeTileMask, createGardenPuzzle, createPairsDeck, melodyTap, nextTriviaQuestion, reflexTap, reversiScores, reversiValidMoves, scoreMarketInventory, toggleGarden, validBridgePlacements, validateWord, type LanternHazard } from '../gameEngine';
 import type { BridgeGameState, Drop4GameState, HotTakesGameState, LanternGameState, MarketGameState, PlayerProfile, ReversiGameState, SharedGameAction, SharedGameState, WordBombGameState } from '../types';
 import { Podling } from './Podling';
 import bridgeTiles from '../assets/content/game-art/bridge-tiles.webp';
@@ -127,6 +127,86 @@ export function ReflexStage() {
   return <div className="reflex-stage game-stage"><div className="game-title-row"><div><h2>Reflex</h2><p>{result || 'Ready for the signal?'}</p></div></div><button className={`reflex-button ${phase}`} type="button" onClick={phase === 'idle' || phase === 'result' ? start : tap}><span>{phase === 'go' ? 'TAP!' : phase === 'wait' ? 'Wait…' : 'Start'}</span></button></div>;
 }
 
+const pairKeepsakes = [
+  { icon: '🍄', label: 'Mushroom' }, { icon: '🌰', label: 'Acorn' },
+  { icon: '🍃', label: 'Leaf' }, { icon: '🌙', label: 'Moon' },
+  { icon: '🫖', label: 'Tea pot' }, { icon: '🧶', label: 'Yarn' },
+  { icon: '🏮', label: 'Lantern' }, { icon: '⭐', label: 'Star' },
+];
+
+export function PairsStage({ onReward }: { onReward: (message: string) => void }) {
+  const [seed, setSeed] = useState(() => Date.now());
+  const [deck, setDeck] = useState(() => createPairsDeck(seed));
+  const [flipped, setFlipped] = useState<number[]>([]);
+  const [matched, setMatched] = useState<number[]>([]);
+  const [moves, setMoves] = useState(0);
+  const [locked, setLocked] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const timer = useRef<number | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  const reset = () => {
+    if (timer.current) clearTimeout(timer.current);
+    const nextSeed = seed + 1;
+    setSeed(nextSeed); setDeck(createPairsDeck(nextSeed)); setFlipped([]); setMatched([]); setMoves(0); setLocked(false); setComplete(false);
+  };
+  const reveal = (index: number) => {
+    if (locked || complete || flipped.includes(index) || matched.includes(index)) return;
+    if (!flipped.length) { setFlipped([index]); return; }
+    const first = flipped[0];
+    const nextMoves = moves + 1;
+    setFlipped([first, index]); setMoves(nextMoves); setLocked(true);
+    const isMatch = deck[first] === deck[index];
+    timer.current = window.setTimeout(() => {
+      if (isMatch) {
+        const nextMatched = [...matched, first, index];
+        setMatched(nextMatched);
+        if (nextMatched.length === deck.length) {
+          setComplete(true);
+          onReward('Firefly Pairs complete! +40 coins · +30 XP.');
+        }
+      }
+      setFlipped([]); setLocked(false);
+    }, isMatch ? 430 : 780);
+  };
+  const stars = moves <= 12 ? 3 : moves <= 18 ? 2 : 1;
+  return <div className="pairs-stage game-stage">
+    <div className="game-title-row"><div><h2>Firefly Pairs</h2><p>{complete ? `All keepsakes found in ${moves} moves!` : 'Find the matching keepsakes.'}</p></div><button type="button" onClick={reset} aria-label="Restart Firefly Pairs"><RotateCcw size={18} /></button></div>
+    <div className="pairs-score"><span><b>{matched.length / 2}</b> / 8 pairs</span><span><b>{moves}</b> moves</span>{complete && <span aria-label={`${stars} stars`}>{'★'.repeat(stars)}{'☆'.repeat(3 - stars)}</span>}</div>
+    <div className="pairs-board" aria-label="Firefly Pairs board">{deck.map((keepsake, index) => {
+      const showing = flipped.includes(index) || matched.includes(index);
+      const item = pairKeepsakes[keepsake];
+      return <button key={index} type="button" disabled={locked || matched.includes(index) || complete} className={`${showing ? 'showing' : ''} ${matched.includes(index) ? 'matched' : ''}`} onClick={() => reveal(index)} aria-label={showing ? `${item.label}${matched.includes(index) ? ', matched' : ''}` : `Hidden card ${index + 1}`} aria-pressed={showing}><span className="pair-card-back">✦</span><span className="pair-card-front"><b>{item.icon}</b><small>{item.label}</small></span></button>;
+    })}</div>
+    {complete && <button className="stage-action" type="button" onClick={reset}>Shuffle and play again</button>}
+  </div>;
+}
+
+export function GardenStage({ onReward }: { onReward: (message: string) => void }) {
+  const [seed, setSeed] = useState(() => Date.now());
+  const [board, setBoard] = useState(() => createGardenPuzzle(seed));
+  const [moves, setMoves] = useState(0);
+  const [complete, setComplete] = useState(false);
+  const newPuzzle = () => {
+    const nextSeed = seed + 1;
+    setSeed(nextSeed); setBoard(createGardenPuzzle(nextSeed)); setMoves(0); setComplete(false);
+  };
+  const tend = (index: number) => {
+    if (complete) return;
+    const next = toggleGarden(board, index);
+    const won = next.every(Boolean);
+    setBoard(next); setMoves((value) => value + 1); setComplete(won);
+    if (won) onReward('Glow Garden complete! +40 coins · +30 XP.');
+  };
+  const awake = board.filter(Boolean).length;
+  return <div className="garden-stage game-stage">
+    <div className="game-title-row"><div><h2>Glow Garden</h2><p>{complete ? `The whole garden is glowing after ${moves} taps!` : 'A tap changes this plot and its neighbors.'}</p></div><button type="button" onClick={newPuzzle} aria-label="New Glow Garden puzzle"><RotateCcw size={18} /></button></div>
+    <div className="garden-score"><span><b>{awake}</b> / 25 awake</span><span><b>{moves}</b> taps</span></div>
+    <div className="garden-board" aria-label="Glow Garden board">{board.map((lit, index) => <button key={index} type="button" disabled={complete} className={lit ? 'blooming' : 'sleeping'} onClick={() => tend(index)} aria-label={`Garden plot ${index + 1}, ${lit ? 'blooming' : 'sleeping'}`} aria-pressed={lit}><span>{lit ? '✿' : '·'}</span></button>)}</div>
+    <p className="garden-tip">Tip: corner taps reach three plots; middle taps reach five.</p>
+    {complete && <button className="stage-action" type="button" onClick={newPuzzle}>Plant a new puzzle</button>}
+  </div>;
+}
+
 export function HotTakesStage({ players, meId, game, onAction }: SharedStageProps<HotTakesGameState>) {
   if (!game || game.phase === 'waiting') return <WaitingForFriends title="Hot Takes" />;
   const myVote = game.votes[meId];
@@ -135,9 +215,8 @@ export function HotTakesStage({ players, meId, game, onAction }: SharedStageProp
 }
 
 const hazardIcons: Record<LanternHazard, typeof Wind> = { gust: Wind, rain: CloudRain, spark: Sparkles };
-export function LanternStage({ players, meId, game, onAction, onWin }: SharedStageProps<LanternGameState> & { onWin: () => void }) {
+export function LanternStage({ players, game, onAction }: SharedStageProps<LanternGameState>) {
   const [clock, setClock] = useState(Date.now());
-  const claiming = useRef(false);
   const gameSessionId = game?.sessionId;
   const gamePhase = game?.phase;
   useEffect(() => {
@@ -145,11 +224,6 @@ export function LanternStage({ players, meId, game, onAction, onWin }: SharedSta
     const timer = window.setInterval(() => { setClock(Date.now()); void onAction({ type: 'lantern-tick' }); }, 500);
     return () => clearInterval(timer);
   }, [gameSessionId, gamePhase, onAction]);
-  useEffect(() => {
-    if (!game || game.phase !== 'finished' || game.rewardClaims[meId] || claiming.current) return;
-    claiming.current = true;
-    void onAction({ type: 'claim-lantern-reward' }).then((result) => { if (result.changed) onWin(); claiming.current = false; });
-  }, [game, meId, onAction, onWin]);
   if (!game || game.phase === 'waiting') return <WaitingForFriends title="Lantern Keepers" />;
   const remaining = game.phase === 'playing' ? Math.min(60, Math.max(0, Math.ceil((game.deadline - clock) / 1000))) : game.phase === 'ready' ? 60 : 0;
   const elapsed = game.phase === 'playing' ? Math.max(0, (clock - game.startedAt) / 1000) : 0;

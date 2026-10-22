@@ -18,6 +18,7 @@ interface LoungeProps {
   onEmote: (emoji: string) => void;
   onReady: () => void;
   onQueue: (game: GameId) => void;
+  onRemoveQueue: (index: number) => void;
   onStartParty: () => void;
   onOpenArcade: () => void;
   onReward: (message: string) => void;
@@ -32,14 +33,13 @@ const positionsByCount = {
   4: [{ left: '13%', top: '57%' }, { left: '37%', top: '48%' }, { left: '59%', top: '51%' }, { left: '77%', top: '58%' }],
 } as const;
 
-export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady, onVoice, onMessage, onEmote, onReady, onQueue, onStartParty, onOpenArcade, onReward, musicOn, onMusic }: LoungeProps) {
+export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady, onVoice, onMessage, onEmote, onReady, onQueue, onRemoveQueue, onStartParty, onOpenArcade, onReward, musicOn, onMusic }: LoungeProps) {
   const [draft, setDraft] = useState('');
   const [drawer, setDrawer] = useState<'toys' | 'party' | null>(null);
   const [promptIndex, setPromptIndex] = useState(0);
   const readyCount = players.filter((player) => player.ready).length;
   const allReady = players.length > 0 && readyCount === players.length;
-  const queuedGame = party.queue[0];
-  const needsFriend = queuedGame ? isMultiplayerGame(queuedGame) && players.length < 2 : false;
+  const needsFriend = party.queue.some(isMultiplayerGame) && players.length < 2;
   const playerPositions = positionsByCount[players.length as keyof typeof positionsByCount] || positionsByCount[4];
   const recentMessages = useMemo(() => messages.slice(-3), [messages]);
   const submit = (event: FormEvent) => {
@@ -115,7 +115,7 @@ export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady
           </div>
           <button className={`ready-button ${players[0].ready ? 'is-ready' : ''}`} type="button" onClick={onReady}>{players[0].ready ? 'You’re ready ✓' : 'Ready up'}</button>
           <div className="queue-list">
-            {party.queue.length === 0 ? <p>Pick a few games for the night.</p> : party.queue.map((id, index) => <span key={`${id}-${index}`}>{games.find((game) => game.id === id)?.icon} {games.find((game) => game.id === id)?.label}</span>)}
+            {party.queue.length === 0 ? <p>Pick a few games for the night.</p> : party.queue.map((id, index) => <span key={`${id}-${index}`}>{games.find((game) => game.id === id)?.icon} {games.find((game) => game.id === id)?.label}<button type="button" aria-label={`Remove ${games.find((game) => game.id === id)?.label}`} onClick={() => onRemoveQueue(index)}>×</button></span>)}
           </div>
           <div className="party-game-picks">
             {games.map((game) => <button key={game.id} disabled={party.queue.length >= 5} type="button" onClick={() => onQueue(game.id)}><span>{game.icon}</span>{game.label}</button>)}

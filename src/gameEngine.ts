@@ -1,5 +1,5 @@
 import { hotTakePrompts, wordSyllables } from './data';
-import type { GameId, LanternGameState, MultiplayerGameId, ReversiGameState, SharedGameAction, SharedGameState } from './types';
+import type { GameId, LanternGameState, MultiplayerGameId, PlayerProfile, ReversiGameState, SharedGameAction, SharedGameState } from './types';
 
 export type DropCell = -1 | 0 | 1;
 
@@ -65,7 +65,7 @@ export function isMultiplayerGame(gameId: GameId): gameId is MultiplayerGameId {
 export function createSharedGame(gameId: MultiplayerGameId, playerIds: string[], now = Date.now()): SharedGameState {
   const players = [...new Set(playerIds)].slice(0, 4);
   const ready = players.length >= 2;
-  const base = { sessionId: `${gameId}-${now}-${players.join('-')}`, playerIds: players, createdAt: now, updatedAt: now };
+  const base = { sessionId: `${gameId}-${now}-${players.join('-')}`, playerIds: players, createdAt: now, updatedAt: now, rewardClaims: {} };
   if (gameId === 'drop4') return { ...base, playerIds: players.slice(0, 2), gameId, phase: ready ? 'playing' : 'waiting', board: Array(42).fill(-1), turnIndex: 0 };
   if (gameId === 'wordbomb') return { ...base, gameId, phase: ready ? 'playing' : 'waiting', chain: [], syllableIndex: 0, turnIndex: 0, deadline: ready ? now + 10000 : 0 };
   if (gameId === 'hottakes') return { ...base, gameId, phase: ready ? 'playing' : 'waiting', promptIndex: 0, votes: {}, revealed: false };
@@ -80,6 +80,7 @@ export function createSharedGame(gameId: MultiplayerGameId, playerIds: string[],
 }
 
 export function normalizeSharedGame(state: SharedGameState): SharedGameState {
+  state = state.rewardClaims ? state : { ...state, rewardClaims: {} };
   if (state.gameId === 'drop4') return state.board ? state : { ...state, board: Array(42).fill(-1) };
   if (state.gameId === 'wordbomb') return state.chain ? state : { ...state, chain: [] };
   if (state.gameId === 'hottakes') return state.votes ? state : { ...state, votes: {} };
@@ -104,6 +105,10 @@ export function refreshWaitingGame(state: SharedGameState, playerIds: string[], 
 export function applySharedGameAction(state: SharedGameState, action: SharedGameAction, actorId: string, now = Date.now()): SharedGameState {
   state = normalizeSharedGame(state);
   if (!state.playerIds.includes(actorId)) return state;
+  if (action.type === 'claim-game-reward') {
+    if (!isSharedGameComplete(state) || state.rewardClaims[actorId]) return state;
+    return { ...state, rewardClaims: { ...state.rewardClaims, [actorId]: true }, updatedAt: now };
+  }
   if (action.type === 'restart') return createSharedGame(state.gameId, state.playerIds, now);
 
   if (state.gameId === 'drop4' && action.type === 'drop-disc') {
@@ -197,9 +202,6 @@ export function applySharedGameAction(state: SharedGameState, action: SharedGame
       const event = activeLanternEvents(settled, elapsed).find((item) => item.lantern === action.lantern);
       if (!event) return settled;
       return { ...settled, resolved: [...settled.resolved, event.id], warmth: Math.min(100, settled.warmth + 2), updatedAt: now };
-    }
-    if (action.type === 'claim-lantern-reward' && settled.phase === 'finished' && !settled.rewardClaims[actorId]) {
-      return { ...settled, rewardClaims: { ...settled.rewardClaims, [actorId]: true }, updatedAt: now };
     }
   }
 
@@ -315,8 +317,65 @@ export function scoreMarketInventory(items: number[]) {
   return items.length;
 }
 
+export function sharedGameWinnerIds(state: SharedGameState | null) {
+  if (!state) return [];
+  if (state.gameId === 'market') return state.phase === 'finished' ? state.winnerIds : [];
+  if (state.gameId === 'lanterns') return state.phase === 'finished' ? state.playerIds : [];
+  if (state.gameId === 'hottakes') return [];
+  if ('winnerId' in state && state.phase === 'finished' && state.winnerId) return [state.winnerId];
+  return [];
+}
+
+export function partyRoundWinnerIds(gameId: GameId, state: SharedGameState | null) {
+  if (!isMultiplayerGame(gameId) || state?.gameId !== gameId) return [];
+  return sharedGameWinnerIds(state);
+}
+
+export function isSharedGameComplete(state: SharedGameState | null) {
+  if (!state) return false;
+  if (state.gameId === 'hottakes') return state.revealed;
+  return state.phase === 'finished' || state.phase === 'draw';
+}
+
 export function nextTriviaQuestion(index: number, count: number) {
   return count > 0 ? (index + 1) % count : 0;
+}
+
+export function createPairsDeck(seed: number) {
+  const deck = Array.from({ length: 16 }, (_, index) => index % 8);
+  let state = (Math.abs(Math.floor(seed)) || 1) >>> 0;
+  const random = () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  for (let index = deck.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1));
+    [deck[index], deck[swap]] = [deck[swap], deck[index]];
+  }
+  return deck;
+}
+
+export function toggleGarden(board: boolean[], index: number, size = 5) {
+  if (board.length !== size * size || !Number.isInteger(index) || index < 0 || index >= board.length) return board;
+  const next = [...board];
+  const row = Math.floor(index / size);
+  const column = index % size;
+  [[row, column], [row - 1, column], [row + 1, column], [row, column - 1], [row, column + 1]].forEach(([r, c]) => {
+    if (r >= 0 && r < size && c >= 0 && c < size) next[r * size + c] = !next[r * size + c];
+  });
+  return next;
+}
+
+export function createGardenPuzzle(seed: number, size = 5) {
+  let state = (Math.abs(Math.floor(seed)) || 1) >>> 0;
+  const pressed = new Set<number>();
+  while (pressed.size < Math.min(6, size * size)) {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    pressed.add(Math.floor((state / 4294967296) * size * size));
+  }
+  let board = Array(size * size).fill(true) as boolean[];
+  pressed.forEach((index) => { board = toggleGarden(board, index, size); });
+  return board.every(Boolean) ? toggleGarden(board, 0, size) : board;
 }
 
 export function melodyTap(sequence: number[], input: number[], value: number) {
@@ -334,6 +393,25 @@ export function reflexTap(phase: 'idle' | 'wait' | 'go' | 'result', startedAt: n
 
 export function levelThreshold(level: number) {
   return Math.max(100, level * 100);
+}
+
+export function applyProfileReward(player: PlayerProfile, message: string) {
+  const coins = Number(message.match(/\+(\d+)\s*coins?/i)?.[1] || 0);
+  const earnedXp = Number(message.match(/\+(\d+)\s*xp/i)?.[1] || 0);
+  if (!coins && !earnedXp && !message.includes('Trophy earned') && !message.includes('Storm cleared')) return player;
+  let xp = player.xp + earnedXp;
+  let level = player.level;
+  while (xp >= levelThreshold(level)) {
+    xp -= levelThreshold(level);
+    level += 1;
+  }
+  return {
+    ...player,
+    coins: player.coins + coins,
+    xp,
+    level,
+    trophyCount: player.trophyCount + (message.includes('Trophy earned') || message.includes('Storm cleared') ? 1 : 0),
+  };
 }
 
 function sameIds(left: string[], right: string[]) {

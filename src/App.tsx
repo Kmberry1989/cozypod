@@ -8,7 +8,7 @@ import { Wardrobe } from './components/Wardrobe';
 import { realtime, type GameTransactionResult, type RoomSnapshot } from './services/realtime';
 import { voice } from './services/voice';
 import { seedPlayers } from './data';
-import { applySharedGameAction, createSharedGame, isMultiplayerGame, levelThreshold, normalizeSharedGame, refreshWaitingGame } from './gameEngine';
+import { applyProfileReward, applySharedGameAction, createSharedGame, isMultiplayerGame, normalizeSharedGame, partyRoundWinnerIds, refreshWaitingGame } from './gameEngine';
 import type { ChatMessage, GameId, PartyState, PlayerProfile, SharedGameAction, SharedGameState, View } from './types';
 import { cozyAudio } from './services/audio';
 import { googleAuthErrorMessage } from './authErrors';
@@ -40,7 +40,9 @@ function App() {
   const sharedGameRef = useRef<SharedGameState | null>(null);
 
   const me = players[0];
+  const meRef = useRef(me);
   useEffect(() => { sharedGameRef.current = sharedGame; }, [sharedGame]);
+  useEffect(() => { meRef.current = me; }, [me]);
   useEffect(() => { localStorage.setItem('cozypod_v2_profile', JSON.stringify(me)); }, [me]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(null), 3600); return () => clearTimeout(timer); }, [toast]);
   useEffect(() => {
@@ -71,7 +73,7 @@ function App() {
     if (snapshot.messages) setMessages(Object.values(snapshot.messages).sort((a, b) => a.createdAt - b.createdAt).slice(-50));
     else setMessages([]);
     if (snapshot.party) {
-      setParty((current) => ({ ...current, ...snapshot.party, queue: snapshot.party?.queue || current.queue, scores: snapshot.party?.scores || current.scores }));
+      setParty((current) => ({ ...current, ...snapshot.party, queue: snapshot.party?.queue || (snapshot.party?.phase === 'lounge' ? [] : current.queue), scores: snapshot.party?.scores || (snapshot.party?.phase === 'lounge' ? {} : current.scores) }));
       if (snapshot.party.game) {
         setSharedGame(normalizeSharedGame(snapshot.party.game));
       }
@@ -132,6 +134,18 @@ function App() {
     }
   }, [players]);
 
+  const startFreshSharedGame = useCallback(async (gameId: GameId) => {
+    if (!isMultiplayerGame(gameId)) {
+      sharedGameRef.current = null;
+      setSharedGame(null);
+      await realtime.transactGame(() => null);
+      return;
+    }
+    const next = createSharedGame(gameId, players.map((player) => player.id), Date.now());
+    const online = await realtime.transactGame(() => next);
+    setSharedGame(online?.state ? normalizeSharedGame(online.state) : next);
+  }, [players]);
+
   useEffect(() => {
     if (joined && sharedGame?.gameId === selectedGame) void ensureSharedGame(selectedGame, players);
   }, [joined, selectedGame, players, sharedGame?.gameId, ensureSharedGame]);
@@ -153,11 +167,38 @@ function App() {
     const next = { ...party, phase: 'ready' as const, queue: [...party.queue, game] };
     setParty(next); realtime.updateParty(next);
   };
+  const removeQueuedGame = (index: number) => {
+    if (party.phase === 'playing') return;
+    const queue = party.queue.filter((_, itemIndex) => itemIndex !== index);
+    const next = { ...party, phase: queue.length ? 'ready' as const : 'lounge' as const, queue };
+    setParty(next); void realtime.updateParty(next);
+  };
   const startParty = () => {
     const first = party.queue[0] || 'drop4';
-    const next = { ...party, phase: 'playing' as const, round: 0, selectedGame: first };
+    const next = { ...party, phase: 'playing' as const, round: 0, selectedGame: first, scores: Object.fromEntries(players.map((player) => [player.id, 0])) };
     setSelectedGame(first); setParty(next); realtime.updateParty(next);
-    void ensureSharedGame(first);
+    void startFreshSharedGame(first);
+  };
+
+  const advanceParty = () => {
+    if (party.phase !== 'playing') return;
+    const scores = { ...party.scores };
+    const roundGame = party.queue[party.round];
+    const winners = partyRoundWinnerIds(roundGame, sharedGame);
+    winners.forEach((id) => { scores[id] = (scores[id] || 0) + 1; });
+    const nextRound = party.round + 1;
+    if (nextRound >= party.queue.length) {
+      const next = { ...party, phase: 'recap' as const, scores };
+      setParty(next); void realtime.updateParty(next); return;
+    }
+    const gameId = party.queue[nextRound];
+    const next = { ...party, round: nextRound, scores, selectedGame: gameId };
+    setParty(next); setSelectedGame(gameId); void realtime.updateParty(next); void startFreshSharedGame(gameId);
+  };
+
+  const finishParty = () => {
+    const next: PartyState = { phase: 'lounge', queue: [], round: 0, scores: {} };
+    setParty(next); void realtime.updateParty(next); setView('lounge');
   };
 
   const selectGame = (gameId: GameId) => {
@@ -165,20 +206,19 @@ function App() {
     const next = { ...party, selectedGame: gameId };
     setParty(next);
     void realtime.updateParty(next);
-    void ensureSharedGame(gameId);
+    if (isMultiplayerGame(gameId)) void ensureSharedGame(gameId);
+    else void startFreshSharedGame(gameId);
   };
 
   const reward = useCallback((message: string) => {
     setToast(message);
-    if (message.includes('+')) cozyAudio.success();
-    if (!message.includes('+')) return;
-    setPlayers((current) => {
-      const player = current[0];
-      let xp = player.xp + 30;
-      let level = player.level;
-      if (xp >= levelThreshold(level)) { xp -= levelThreshold(level); level += 1; }
-      return [{ ...player, coins: player.coins + 40, xp, level, trophyCount: player.trophyCount + (message.includes('Storm cleared') ? 1 : 0) }, ...current.slice(1)];
-    });
+    const player = meRef.current;
+    const updated = applyProfileReward(player, message);
+    if (updated === player) return;
+    cozyAudio.success();
+    meRef.current = updated;
+    setPlayers((current) => [updated, ...current.slice(1)]);
+    void realtime.updatePlayer(updated);
   }, []);
 
   const toggleVoice = async () => {
@@ -200,8 +240,8 @@ function App() {
   const toggleMusic = () => { const next = !musicOn; setMusicOn(next); cozyAudio.setMusic(next); setToast(next ? 'Rainy-day radio is playing' : 'Clubhouse mix paused'); };
 
   let appContent;
-  if (view === 'lounge') appContent = <Lounge players={players} roomCode={roomCode} messages={messages} party={party} voiceOn={voiceOn} voiceReady={voiceReady} onVoice={toggleVoice} onMessage={addMessage} onEmote={sendEmote} onReady={toggleReady} onQueue={queueGame} onStartParty={startParty} onOpenArcade={() => setView('arcade')} onReward={reward} musicOn={musicOn} onMusic={toggleMusic} />;
-  else if (view === 'arcade') appContent = <Arcade players={players} meId={me.id} selected={selectedGame} party={party} sharedGame={sharedGame} onSelect={selectGame} onGameAction={transactGame} onReward={reward} />;
+  if (view === 'lounge') appContent = <Lounge players={players} roomCode={roomCode} messages={messages} party={party} voiceOn={voiceOn} voiceReady={voiceReady} onVoice={toggleVoice} onMessage={addMessage} onEmote={sendEmote} onReady={toggleReady} onQueue={queueGame} onRemoveQueue={removeQueuedGame} onStartParty={startParty} onOpenArcade={() => setView('arcade')} onReward={reward} musicOn={musicOn} onMusic={toggleMusic} />;
+  else if (view === 'arcade') appContent = <Arcade players={players} meId={me.id} selected={selectedGame} party={party} sharedGame={sharedGame} onSelect={selectGame} onGameAction={transactGame} onNextPartyRound={advanceParty} onFinishParty={finishParty} onReward={reward} />;
   else appContent = <Wardrobe player={me} onChange={updateMe} />;
 
   if (!joined) return <><JoinScreen player={me} initialRoom={roomCode} onEnter={enterRoom} onGoogle={googleSignIn} />{toast && <Toast text={toast} onClose={() => setToast(null)} />}</>;

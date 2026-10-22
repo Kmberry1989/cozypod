@@ -1,5 +1,5 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInAnonymously, signInWithPopup, type Auth } from 'firebase/auth';
+import { connectAuthEmulator, getAuth, GoogleAuthProvider, signInAnonymously, signInWithPopup, type Auth } from 'firebase/auth';
 import { getDatabase, onChildAdded, onDisconnect, onValue, push, ref, remove, runTransaction, set, update, type Database } from 'firebase/database';
 import type { ChatMessage, PartyState, PlayerProfile, SharedGameState } from '../types';
 
@@ -46,19 +46,30 @@ class RealtimeService {
   private roomCode = '';
   private uid = '';
   private onlineRoom = false;
+  private authEmulatorConnected = false;
+
+  private ensureFirebase() {
+    const app = this.app ??= initializeApp(config);
+    const auth = this.auth ??= getAuth(app);
+    const db = this.db ??= getDatabase(app);
+    const authEmulator = import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_URL;
+    if (authEmulator && !this.authEmulatorConnected) {
+      connectAuthEmulator(auth, authEmulator, { disableWarnings: true });
+      this.authEmulatorConnected = true;
+    }
+    return { auth, db };
+  }
 
   async connect(roomCode: string, player: PlayerProfile, onRoom: (snapshot: RoomSnapshot, selfUid: string) => void) {
     try {
-      this.app ??= initializeApp(config);
-      this.auth ??= getAuth(this.app);
-      this.db ??= getDatabase(this.app);
-      if (!this.auth.currentUser) await signInAnonymously(this.auth);
-      this.uid = this.auth.currentUser?.uid || player.id;
+      const { auth, db } = this.ensureFirebase();
+      if (!auth.currentUser) await signInAnonymously(auth);
+      this.uid = auth.currentUser?.uid || player.id;
       this.roomCode = roomCode;
       const normalized = { ...player, id: this.uid, online: true };
       const functionsBase = import.meta.env.VITE_FUNCTIONS_BASE_URL;
-      if (functionsBase && this.auth.currentUser) {
-        const token = await this.auth.currentUser.getIdToken();
+      if (functionsBase && auth.currentUser) {
+        const token = await auth.currentUser.getIdToken();
         const response = await fetch(`${functionsBase}/createOrJoinRoom`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
@@ -66,11 +77,11 @@ class RealtimeService {
         });
         if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'Could not join this room.');
       }
-      const playerRef = ref(this.db, `v2/rooms/${roomCode}/players/${this.uid}`);
+      const playerRef = ref(db, `v2/rooms/${roomCode}/players/${this.uid}`);
       await set(playerRef, normalized);
       await onDisconnect(playerRef).remove();
       this.onlineRoom = true;
-      const unsubscribe = onValue(ref(this.db, `v2/rooms/${roomCode}`), (snapshot) => onRoom((snapshot.val() || {}) as RoomSnapshot, this.uid));
+      const unsubscribe = onValue(ref(db, `v2/rooms/${roomCode}`), (snapshot) => onRoom((snapshot.val() || {}) as RoomSnapshot, this.uid));
       return { uid: this.uid, unsubscribe, online: true };
     } catch (error) {
       this.onlineRoom = false;
@@ -91,7 +102,7 @@ class RealtimeService {
 
   async updateParty(party: PartyState) {
     if (!this.db || !this.roomCode) return;
-    const metadata = { phase: party.phase, queue: party.queue, round: party.round, scores: party.scores, ...(party.selectedGame ? { selectedGame: party.selectedGame } : {}) };
+    const metadata = { phase: party.phase, queue: party.queue, round: party.round, scores: party.scores, selectedGame: party.selectedGame || null };
     await update(ref(this.db, `v2/rooms/${this.roomCode}/party`), metadata).catch(() => undefined);
   }
 
@@ -144,9 +155,8 @@ class RealtimeService {
   }
 
   async signInGoogle() {
-    this.app ??= initializeApp(config);
-    this.auth ??= getAuth(this.app);
-    return signInWithPopup(this.auth, new GoogleAuthProvider());
+    const { auth } = this.ensureFirebase();
+    return signInWithPopup(auth, new GoogleAuthProvider());
   }
 
   async leave() {

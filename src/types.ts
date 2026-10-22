@@ -1,5 +1,5 @@
 export type View = 'lounge' | 'arcade' | 'wardrobe';
-export type GameId = 'drop4' | 'wordbomb' | 'trivia' | 'melody' | 'reflex' | 'hottakes' | 'lanterns' | 'reversi' | 'bridges' | 'market';
+export type GameId = 'drop4' | 'wordbomb' | 'trivia' | 'melody' | 'reflex' | 'pairs' | 'garden' | 'hottakes' | 'lanterns' | 'reversi' | 'bridges' | 'market';
 export type MultiplayerGameId = 'drop4' | 'wordbomb' | 'hottakes' | 'lanterns' | 'reversi' | 'bridges' | 'market';
 export type BodyColor = string;
 export type Sprout = string;
@@ -64,6 +64,7 @@ interface SharedGameBase {
   playerIds: string[];
   createdAt: number;
   updatedAt: number;
+  rewardClaims: Record<string, boolean>;
 }
 
 export interface Drop4GameState extends SharedGameBase {
@@ -99,7 +100,6 @@ export interface LanternGameState extends SharedGameBase {
   warmth: number;
   resolved: number[];
   penalized: number[];
-  rewardClaims: Record<string, boolean>;
 }
 
 export interface ReversiGameState extends SharedGameBase {
@@ -140,7 +140,7 @@ export type SharedGameAction =
   | { type: 'start-lanterns' }
   | { type: 'resolve-lantern'; lantern: number }
   | { type: 'lantern-tick' }
-  | { type: 'claim-lantern-reward' }
+  | { type: 'claim-game-reward' }
   | { type: 'place-reversi'; index: number }
   | { type: 'place-bridge'; index: number; tile: number; rotation: number }
   | { type: 'pick-market'; slot: number };

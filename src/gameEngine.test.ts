@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   applySharedGameAction,
+  applyProfileReward,
   bridgeTileMask,
   createMarketRow,
+  createPairsDeck,
+  createGardenPuzzle,
   createLanternEvents,
   createSharedGame,
   dropDisc,
@@ -10,16 +13,20 @@ import {
   isDrop4Draw,
   melodyTap,
   nextTriviaQuestion,
+  partyRoundWinnerIds,
   reflexTap,
   reversiFlips,
   reversiScores,
   reversiValidMoves,
   scoreMarketInventory,
+  sharedGameWinnerIds,
   settleLanternTime,
+  toggleGarden,
   validBridgePlacements,
   validateWord,
 } from './gameEngine';
 import type { BridgeGameState, Drop4GameState, HotTakesGameState, LanternGameState, MarketGameState, ReversiGameState, WordBombGameState } from './types';
+import { seedPlayers } from './data';
 
 describe('Drop 4', () => {
   it('drops into the lowest open cell, rejects a full column, and finds wins', () => {
@@ -111,9 +118,9 @@ describe('Lantern Keepers', () => {
     const lost = settleLanternTime({ ...state, warmth: 4 }, 10000);
     expect(lost.phase).toBe('lost');
     const finished = { ...state, phase: 'finished' as const };
-    const claimed = applySharedGameAction(finished, { type: 'claim-lantern-reward' }, 'a', 3000) as LanternGameState;
+    const claimed = applySharedGameAction(finished, { type: 'claim-game-reward' }, 'a', 3000) as LanternGameState;
     expect(claimed.rewardClaims.a).toBe(true);
-    expect(applySharedGameAction(claimed, { type: 'claim-lantern-reward' }, 'a', 3001)).toBe(claimed);
+    expect(applySharedGameAction(claimed, { type: 'claim-game-reward' }, 'a', 3001)).toBe(claimed);
   });
 });
 
@@ -131,6 +138,27 @@ describe('solo game transitions', () => {
   it('distinguishes an early reflex tap from a measured result', () => {
     expect(reflexTap('wait', 0, 100).message).toContain('Too soon');
     expect(reflexTap('go', 100, 287).message).toContain('187 ms');
+  });
+
+  it('creates a deterministic memory deck with exactly eight pairs', () => {
+    const deck = createPairsDeck(42);
+    expect(deck).toEqual(createPairsDeck(42));
+    expect(deck).not.toEqual(createPairsDeck(43));
+    expect(deck).toHaveLength(16);
+    expect(Array.from({ length: 8 }, (_, item) => deck.filter((card) => card === item).length)).toEqual(Array(8).fill(2));
+  });
+
+  it('creates deterministic, solvable glow garden layouts', () => {
+    const puzzle = createGardenPuzzle(42);
+    expect(puzzle).toEqual(createGardenPuzzle(42));
+    expect(puzzle).not.toEqual(createGardenPuzzle(43));
+    expect(puzzle).toHaveLength(25);
+    expect(puzzle.every(Boolean)).toBe(false);
+    const corner = toggleGarden(Array(25).fill(false), 0);
+    expect(corner.filter(Boolean)).toHaveLength(3);
+    const center = toggleGarden(Array(25).fill(false), 12);
+    expect(center.filter(Boolean)).toHaveLength(5);
+    expect(toggleGarden(center, 12).every((value) => !value)).toBe(true);
   });
 });
 
@@ -216,5 +244,37 @@ describe('Cozy Market', () => {
     state = applySharedGameAction(state, { type: 'pick-market', slot: 0 }, 'd', 302) as MarketGameState;
     expect(state.round).toBe(2);
     expect(state.available).toHaveLength(5);
+  });
+});
+
+describe('party scoring', () => {
+  it('extracts deterministic winners from competitive and cooperative results', () => {
+    const drop = { ...(createSharedGame('drop4', ['a', 'b'], 1) as Drop4GameState), phase: 'finished' as const, winnerId: 'b' };
+    expect(sharedGameWinnerIds(drop)).toEqual(['b']);
+    const market = { ...(createSharedGame('market', ['a', 'b'], 1) as MarketGameState), phase: 'finished' as const, winnerIds: ['a', 'b'] };
+    expect(sharedGameWinnerIds(market)).toEqual(['a', 'b']);
+    const lanterns = { ...(createSharedGame('lanterns', ['a', 'b'], 1) as LanternGameState), phase: 'finished' as const };
+    expect(sharedGameWinnerIds(lanterns)).toEqual(['a', 'b']);
+  });
+
+  it('never carries a stale shared winner into another or solo round', () => {
+    const finishedDrop = { ...(createSharedGame('drop4', ['a', 'b'], 1) as Drop4GameState), phase: 'finished' as const, winnerId: 'a' };
+    expect(partyRoundWinnerIds('drop4', finishedDrop)).toEqual(['a']);
+    expect(partyRoundWinnerIds('market', finishedDrop)).toEqual([]);
+    expect(partyRoundWinnerIds('pairs', finishedDrop)).toEqual([]);
+  });
+});
+
+describe('profile rewards', () => {
+  it('applies the amounts written in reward messages', () => {
+    const player = { ...seedPlayers[0], level: 1, xp: 95, coins: 100, trophyCount: 0 };
+    const gacha = applyProfileReward(player, 'You found a tiny clay star! +15 coins');
+    expect(gacha).toMatchObject({ coins: 115, xp: 95, level: 1, trophyCount: 0 });
+    const win = applyProfileReward(gacha, 'Game complete! Trophy earned · +40 coins · +30 XP.');
+    expect(win).toMatchObject({ coins: 155, xp: 25, level: 2, trophyCount: 1 });
+  });
+
+  it('leaves flavor-only messages unchanged', () => {
+    expect(applyProfileReward(seedPlayers[0], 'The rain sounds extra cozy now.')).toBe(seedPlayers[0]);
   });
 });
