@@ -12,6 +12,7 @@ import {
   getDrop4Winner,
   isDrop4Draw,
   melodyTap,
+  moveTeaStack,
   nextTriviaQuestion,
   partyRoundWinnerIds,
   reflexTap,
@@ -159,6 +160,17 @@ describe('solo game transitions', () => {
     const center = toggleGarden(Array(25).fill(false), 12);
     expect(center.filter(Boolean)).toHaveLength(5);
     expect(toggleGarden(center, 12).every((value) => !value)).toBe(true);
+  });
+
+  it('moves tea cups only onto empty trays or larger cups', () => {
+    const start = [[3, 2, 1], [], []];
+    const first = moveTeaStack(start, 0, 2);
+    expect(first).toEqual([[3, 2], [], [1]]);
+    expect(moveTeaStack(first, 0, 2)).toBe(first);
+    expect(moveTeaStack(first, 2, 1)).toEqual([[3, 2], [1], []]);
+    expect(moveTeaStack(start, 1, 2)).toBe(start);
+    const solved = [[0, 2], [0, 1], [2, 1], [0, 2], [1, 0], [1, 2], [0, 2]].reduce((pegs, [from, to]) => moveTeaStack(pegs, from, to), start);
+    expect(solved).toEqual([[], [], [3, 2, 1]]);
   });
 });
 

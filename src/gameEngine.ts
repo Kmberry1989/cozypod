@@ -378,6 +378,14 @@ export function createGardenPuzzle(seed: number, size = 5) {
   return board.every(Boolean) ? toggleGarden(board, 0, size) : board;
 }
 
+export function moveTeaStack(pegs: number[][], from: number, to: number) {
+  if (pegs.length !== 3 || !pegs.every((peg) => Array.isArray(peg)) || !Number.isInteger(from) || !Number.isInteger(to) || from < 0 || from > 2 || to < 0 || to > 2 || from === to) return pegs;
+  const cup = pegs[from].at(-1);
+  const destination = pegs[to].at(-1);
+  if (cup === undefined || (destination !== undefined && destination < cup)) return pegs;
+  return pegs.map((peg, index) => index === from ? peg.slice(0, -1) : index === to ? [...peg, cup] : [...peg]);
+}
+
 export function melodyTap(sequence: number[], input: number[], value: number) {
   const nextInput = [...input, value];
   if (value !== sequence[nextInput.length - 1]) return { outcome: 'wrong' as const, sequence: [0], input: [] as number[] };

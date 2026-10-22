@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Check, CloudRain, Flame, RotateCcw, Sparkles, Wind } from 'lucide-react';
 import { hotTakePrompts, trivia, wordSyllables } from '../data';
-import { activeLanternEvents, bridgeTileMask, createGardenPuzzle, createPairsDeck, melodyTap, nextTriviaQuestion, reflexTap, reversiScores, reversiValidMoves, scoreMarketInventory, toggleGarden, validBridgePlacements, validateWord, type LanternHazard } from '../gameEngine';
+import { activeLanternEvents, bridgeTileMask, createGardenPuzzle, createPairsDeck, melodyTap, moveTeaStack, nextTriviaQuestion, reflexTap, reversiScores, reversiValidMoves, scoreMarketInventory, toggleGarden, validBridgePlacements, validateWord, type LanternHazard } from '../gameEngine';
 import type { BridgeGameState, Drop4GameState, HotTakesGameState, LanternGameState, MarketGameState, PlayerProfile, ReversiGameState, SharedGameAction, SharedGameState, WordBombGameState } from '../types';
 import { Podling } from './Podling';
 import bridgeTiles from '../assets/content/game-art/bridge-tiles.webp';
@@ -204,6 +204,38 @@ export function GardenStage({ onReward }: { onReward: (message: string) => void 
     <div className="garden-board" aria-label="Glow Garden board">{board.map((lit, index) => <button key={index} type="button" disabled={complete} className={lit ? 'blooming' : 'sleeping'} onClick={() => tend(index)} aria-label={`Garden plot ${index + 1}, ${lit ? 'blooming' : 'sleeping'}`} aria-pressed={lit}><span>{lit ? '✿' : '·'}</span></button>)}</div>
     <p className="garden-tip">Tip: corner taps reach three plots; middle taps reach five.</p>
     {complete && <button className="stage-action" type="button" onClick={newPuzzle}>Plant a new puzzle</button>}
+  </div>;
+}
+
+export function TeaStackStage({ onReward }: { onReward: (message: string) => void }) {
+  const [pegs, setPegs] = useState<number[][]>([[3, 2, 1], [], []]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [moves, setMoves] = useState(0);
+  const [message, setMessage] = useState('Move the tea set to the window tray.');
+  const complete = pegs[2].length === 3;
+  const reset = () => { setPegs([[3, 2, 1], [], []]); setSelected(null); setMoves(0); setMessage('Move the tea set to the window tray.'); };
+  const choose = (peg: number) => {
+    if (complete) return;
+    if (selected === null) {
+      if (!pegs[peg].length) { setMessage('That tray is empty. Choose a cup first.'); return; }
+      setSelected(peg); setMessage('Now choose a tray for the top cup.'); return;
+    }
+    if (selected === peg) { setSelected(null); setMessage('Cup set down. Choose another tray.'); return; }
+    const next = moveTeaStack(pegs, selected, peg);
+    setSelected(null);
+    if (next === pegs) { setMessage('A bigger cup cannot sit on a smaller cup.'); return; }
+    const nextMoves = moves + 1;
+    const won = next[2].length === 3;
+    setPegs(next); setMoves(nextMoves);
+    if (won) { setMessage(`Perfect pour in ${nextMoves} moves!`); onReward('Tea Stack complete! +40 coins · +30 XP.'); }
+    else setMessage('Lovely. Choose the next top cup.');
+  };
+  return <div className="tea-stage game-stage">
+    <div className="game-title-row"><div><h2>Tea Stack</h2><p>{message}</p></div><button type="button" onClick={reset} aria-label="Restart Tea Stack"><RotateCcw size={18} /></button></div>
+    <div className="tea-score"><span><b>{moves}</b> moves</span><span>Best possible: <b>7</b></span></div>
+    <div className="tea-table" aria-label="Tea Stack trays">{pegs.map((cups, peg) => <button key={peg} type="button" disabled={complete} className={selected === peg ? 'selected' : ''} onClick={() => choose(peg)} aria-label={`Tray ${peg + 1}, ${cups.length} cups`}><span className="tea-window">{peg === 2 ? '☾' : ''}</span><i className="tea-post" />{[...cups].reverse().map((cup) => <span key={cup} className={`tea-cup cup-${cup}`}><b>{cup === 1 ? '·' : cup === 2 ? '⁙' : '✦'}</b></span>)}<em>{peg === 0 ? 'Start' : peg === 2 ? 'Window' : 'Table'}</em></button>)}</div>
+    <p className="tea-tip">Tap a tray to lift its top cup, then tap a destination.</p>
+    {complete && <button className="stage-action" type="button" onClick={reset}>Stack another tea set</button>}
   </div>;
 }
 

@@ -8,6 +8,7 @@ export const games: GameMeta[] = [
   { id: 'reflex', label: 'Reflex', icon: '⚡', color: '#e7a62e', description: 'Wait for the glow. Then tap!' },
   { id: 'pairs', label: 'Firefly Pairs', icon: '✨', color: '#8067b7', description: 'Turn over keepsakes and find every pair.' },
   { id: 'garden', label: 'Glow Garden', icon: '🌼', color: '#4f8e68', description: 'Wake every moonflower with clever taps.' },
+  { id: 'teastack', label: 'Tea Stack', icon: '🫖', color: '#ba704d', description: 'Move the tiny tea set without a spill.' },
   { id: 'hottakes', label: 'Hot Takes', icon: '🔥', color: '#e96746', description: 'Vote, reveal, and defend your choice.' },
   { id: 'lanterns', label: 'Lantern Keepers', icon: '🏮', color: '#4f94a1', description: 'Keep the clubhouse glowing together.', cooperative: true },
   { id: 'reversi', label: 'Mossy Reversi', icon: '🍃', color: '#628753', description: 'Flip the grove and claim the most moss.' },
