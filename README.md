@@ -47,6 +47,7 @@ npm run dev -- --host 127.0.0.1
 npm run lint
 npm test
 npm run test:rules
+npm --prefix functions run build
 npm run build
 ```
 

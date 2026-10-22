@@ -25,9 +25,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm --prefix functions ci
       - run: npm run lint
       - run: npm test
       - run: npm run test:rules
+      - run: npm --prefix functions run build
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
