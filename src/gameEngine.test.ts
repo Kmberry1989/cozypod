@@ -14,6 +14,7 @@ import {
   isSharedGameComplete,
   isSharedGameSettled,
   melodyTap,
+  mergeProfileProgress,
   moveTeaStack,
   nextTriviaQuestion,
   partyRoundWinnerIds,
@@ -311,5 +312,11 @@ describe('profile rewards', () => {
 
   it('leaves flavor-only messages unchanged', () => {
     expect(applyProfileReward(seedPlayers[0], 'The rain sounds extra cozy now.')).toBe(seedPlayers[0]);
+  });
+
+  it('does not let a stale room snapshot roll back earned progress', () => {
+    const local = { ...seedPlayers[0], level: 13, xp: 5, coins: 1300, trophyCount: 7 };
+    const remote = { ...seedPlayers[0], look: { ...seedPlayers[0].look, body: 'mint' } };
+    expect(mergeProfileProgress(local, remote)).toMatchObject({ level: 13, xp: 5, coins: 1300, trophyCount: 7, look: remote.look });
   });
 });

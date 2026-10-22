@@ -433,6 +433,17 @@ export function applyProfileReward(player: PlayerProfile, message: string) {
   };
 }
 
+export function mergeProfileProgress(local: PlayerProfile, remote: PlayerProfile) {
+  const localXpAhead = local.level > remote.level || (local.level === remote.level && local.xp > remote.xp);
+  return {
+    ...remote,
+    coins: Math.max(local.coins, remote.coins),
+    trophyCount: Math.max(local.trophyCount, remote.trophyCount),
+    level: localXpAhead ? local.level : remote.level,
+    xp: localXpAhead ? local.xp : remote.xp,
+  };
+}
+
 function sameIds(left: string[], right: string[]) {
   return left.length === right.length && left.every((id, index) => id === right[index]);
 }

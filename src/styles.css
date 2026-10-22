@@ -392,6 +392,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .profile-card { z-index: 6; position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); min-width: 165px; padding: 7px 20px; display: grid; text-align: center; border-radius: 13px; background: #fff1d8; box-shadow: var(--shadow-small); }
 .profile-card strong, .profile-card span { display: flex; align-items: center; justify-content: center; gap: 5px; }
 .profile-card span { color: var(--muted); font-size: 9px; }
+.profile-xp { position: relative; width: 155px; height: 15px; margin-top: 4px; border-radius: 7px; background: #dfc49e; overflow: hidden; }
+.profile-xp i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: linear-gradient(90deg, #76a667, #b7c96a); }
+.profile-xp small { position: absolute; inset: 0; display: grid; place-items: center; color: #4e382b; font-size: 7px; font-weight: 900; text-shadow: 0 1px rgba(255,255,255,.5); }
 .customizer { padding: 12px; background: #fff0d5; }
 .custom-section, .trophy-shelf { margin-bottom: 12px; }
 .custom-section > div:first-child, .trophy-shelf > div:first-child { display: flex; align-items: baseline; justify-content: space-between; }

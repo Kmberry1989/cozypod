@@ -8,7 +8,7 @@ import { Wardrobe } from './components/Wardrobe';
 import { realtime, type GameTransactionResult, type RoomSnapshot } from './services/realtime';
 import { voice } from './services/voice';
 import { seedPlayers } from './data';
-import { applyProfileReward, applySharedGameAction, createSharedGame, isMultiplayerGame, normalizeSharedGame, partyRoundWinnerIds, refreshSharedGameRoster } from './gameEngine';
+import { applyProfileReward, applySharedGameAction, createSharedGame, isMultiplayerGame, mergeProfileProgress, normalizeSharedGame, partyRoundWinnerIds, refreshSharedGameRoster } from './gameEngine';
 import type { ChatMessage, GameId, PartyState, PlayerProfile, SharedGameAction, SharedGameState, View } from './types';
 import { cozyAudio } from './services/audio';
 import { googleAuthErrorMessage } from './authErrors';
@@ -63,6 +63,7 @@ function App() {
   }, []);
   useEffect(() => () => {
     roomUnsubscribeRef.current();
+    cozyAudio.setMusic(false);
     void voice.disconnect();
     void realtime.leave();
   }, []);
@@ -71,7 +72,8 @@ function App() {
     if (snapshot.players) {
       const remote = Object.values(snapshot.players);
       setPlayers((current) => {
-        const mine = remote.find((item) => item.id === selfUid) || { ...current[0], id: selfUid };
+        const remoteMine = remote.find((item) => item.id === selfUid);
+        const mine = remoteMine ? mergeProfileProgress(current[0], remoteMine) : { ...current[0], id: selfUid };
         return [mine, ...remote.filter((item) => item.id !== selfUid).slice(0, 3)];
       });
     }

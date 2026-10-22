@@ -146,7 +146,7 @@ class RealtimeService {
     const { uid, roomCode } = this.voiceIdentity();
     return onChildAdded(ref(this.db!, `v2/voiceSignals/${roomCode}/${uid}`), (snapshot) => {
       const signal = snapshot.val() as VoiceSignal;
-      Promise.resolve(onSignal(signal)).finally(() => remove(snapshot.ref).catch(() => undefined));
+      Promise.resolve(onSignal(signal)).catch(() => undefined).finally(() => remove(snapshot.ref).catch(() => undefined));
     });
   }
 

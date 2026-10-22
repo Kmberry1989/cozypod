@@ -1,6 +1,7 @@
 import { Check, ChevronLeft, ChevronRight, Lock, Shuffle } from 'lucide-react';
 import type { ContentAsset } from '../contentLibrary';
 import { clubhouseUnlock, rewardUnlock, useContentLibrary } from '../contentLibrary';
+import { levelThreshold } from '../gameEngine';
 import type { PlayerProfile } from '../types';
 import { Podling } from './Podling';
 
@@ -29,7 +30,7 @@ export function Wardrobe({ player, onChange }: WardrobeProps) {
         <button type="button" aria-label="Previous outfit" onClick={() => cycleOutfit(-1)}><ChevronLeft /></button>
         <div className="preview-plinth"><Podling look={player.look} size="large" /><span className="plinth" /></div>
         <button type="button" aria-label="Next outfit" onClick={() => cycleOutfit(1)}><ChevronRight /></button>
-        <div className="profile-card"><strong>{player.name}</strong><span>{player.status}</span></div>
+        <div className="profile-card"><strong>{player.name}</strong><span>{player.status}</span><div className="profile-xp"><i style={{ width: `${Math.min(100, player.xp / levelThreshold(player.level) * 100)}%` }} /><small>Level {player.level} · {player.xp}/{levelThreshold(player.level)} XP</small></div></div>
       </div>
       <div className="customizer">
         <AssetRail title="Body" assets={bodies} selected={player.look.body} player={player} onSelect={(asset) => equipLayer('body', asset)} />
