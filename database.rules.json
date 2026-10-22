@@ -1,0 +1,39 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "v2": {
+      "rooms": {
+        "$room": {
+          ".read": "auth != null && data.child('players').child(auth.uid).exists()",
+          "players": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "!newData.exists() || (newData.hasChildren(['id','name','look','online']) && newData.child('id').val() === auth.uid && newData.child('name').isString() && newData.child('name').val().length <= 20)"
+            }
+          },
+          "messages": {
+            "$message": {
+              ".write": "auth != null && root.child('v2/rooms').child($room).child('players').child(auth.uid).exists()",
+              ".validate": "newData.hasChildren(['playerId','name','text','createdAt']) && newData.child('playerId').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length <= 160"
+            }
+          },
+          "party": {
+            ".write": "auth != null && root.child('v2/rooms').child($room).child('players').child(auth.uid).exists()"
+          }
+        }
+      },
+      "voiceSignals": {
+        "$room": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid && root.child('v2/rooms').child($room).child('players').child(auth.uid).exists()",
+            "$signal": {
+              ".write": "auth != null && ((!newData.exists() && auth.uid === $uid) || (newData.child('from').val() === auth.uid && root.child('v2/rooms').child($room).child('players').child(auth.uid).exists() && root.child('v2/rooms').child($room).child('players').child($uid).exists()))",
+              ".validate": "newData.hasChildren(['from','type','createdAt']) && newData.child('from').isString() && (newData.child('type').val() === 'offer' || newData.child('type').val() === 'answer' || newData.child('type').val() === 'ice') && newData.child('createdAt').isNumber() && (!newData.child('sdp').exists() || (newData.child('sdp').isString() && newData.child('sdp').val().length <= 12000)) && (!newData.child('candidate').exists() || (newData.child('candidate').isString() && newData.child('candidate').val().length <= 3000))"
+            }
+          }
+        }
+      }
+    }
+  }
+}
