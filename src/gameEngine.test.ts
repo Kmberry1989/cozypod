@@ -11,11 +11,14 @@ import {
   dropDisc,
   getDrop4Winner,
   isDrop4Draw,
+  isSharedGameComplete,
+  isSharedGameSettled,
   melodyTap,
   moveTeaStack,
   nextTriviaQuestion,
   partyRoundWinnerIds,
   reflexTap,
+  refreshSharedGameRoster,
   reversiFlips,
   reversiScores,
   reversiValidMoves,
@@ -44,6 +47,7 @@ describe('Drop 4', () => {
     const state = createSharedGame('drop4', ['a', 'b', 'spectator'], 100) as Drop4GameState;
     expect(state.playerIds).toEqual(['a', 'b']);
     expect(applySharedGameAction(state, { type: 'restart' }, 'spectator', 101)).toBe(state);
+    expect(applySharedGameAction(state, { type: 'restart' }, 'a', 101)).toBe(state);
     expect(applySharedGameAction(state, { type: 'drop-disc', column: 0 }, 'b', 101)).toBe(state);
     const first = applySharedGameAction(state, { type: 'drop-disc', column: 0 }, 'a', 102) as Drop4GameState;
     expect(first.board[35]).toBe(0);
@@ -98,6 +102,18 @@ describe('Hot Takes', () => {
     const second = applySharedGameAction(first, { type: 'cast-vote', targetId: 'b' }, 'b', 103) as HotTakesGameState;
     expect(second.revealed).toBe(true);
     expect(Object.values(second.votes).filter((id) => id === 'b')).toHaveLength(2);
+  });
+
+  it('reconciles live voters after joins and disconnects without keeping stale votes', () => {
+    const state = createSharedGame('hottakes', ['a', 'b', 'c'], 100) as HotTakesGameState;
+    const first = applySharedGameAction(state, { type: 'cast-vote', targetId: 'b' }, 'a', 101) as HotTakesGameState;
+    const expanded = refreshSharedGameRoster(first, ['a', 'b', 'c', 'd'], 102) as HotTakesGameState;
+    expect(expanded.playerIds).toEqual(['a', 'b', 'c', 'd']);
+    const second = applySharedGameAction(expanded, { type: 'cast-vote', targetId: 'b' }, 'b', 103) as HotTakesGameState;
+    const reconciled = refreshSharedGameRoster(second, ['a', 'b'], 104) as HotTakesGameState;
+    expect(reconciled.playerIds).toEqual(['a', 'b']);
+    expect(reconciled.revealed).toBe(true);
+    expect(refreshSharedGameRoster(reconciled, ['a', 'b', 'd'], 105)).toBe(reconciled);
   });
 });
 
@@ -274,6 +290,13 @@ describe('party scoring', () => {
     expect(partyRoundWinnerIds('drop4', finishedDrop)).toEqual(['a']);
     expect(partyRoundWinnerIds('market', finishedDrop)).toEqual([]);
     expect(partyRoundWinnerIds('pairs', finishedDrop)).toEqual([]);
+  });
+
+  it('lets a lost cooperative round advance without making it rewardable', () => {
+    const lost = { ...(createSharedGame('lanterns', ['a', 'b'], 1) as LanternGameState), phase: 'lost' as const, warmth: 0 };
+    expect(isSharedGameSettled(lost)).toBe(true);
+    expect(isSharedGameComplete(lost)).toBe(false);
+    expect(applySharedGameAction(lost, { type: 'claim-game-reward' }, 'a', 2)).toBe(lost);
   });
 });
 

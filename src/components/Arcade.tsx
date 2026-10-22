@@ -1,7 +1,7 @@
 import { BookOpen } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { games } from '../data';
-import { isMultiplayerGame, isSharedGameComplete } from '../gameEngine';
+import { isMultiplayerGame, isSharedGameComplete, isSharedGameSettled } from '../gameEngine';
 import type { GameId, PartyState, PlayerProfile, SharedGameAction, SharedGameState } from '../types';
 import { BridgeStage, Drop4Stage, GardenStage, HotTakesStage, LanternStage, MarketStage, MelodyStage, PairsStage, ReflexStage, ReversiStage, TeaStackStage, TriviaStage, WordBombStage } from './GameStages';
 
@@ -43,7 +43,7 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
   const rewardReady = isSharedGameComplete(sharedGame);
   const rewardClaimed = Boolean(sharedGame?.rewardClaims[meId]);
   const partyGame = party.queue[party.round];
-  const partyRoundComplete = !isMultiplayerGame(partyGame) || (sharedGame?.gameId === partyGame && isSharedGameComplete(sharedGame));
+  const partyRoundComplete = !isMultiplayerGame(partyGame) || (sharedGame?.gameId === partyGame && isSharedGameSettled(sharedGame));
   useEffect(() => {
     shelf.current?.querySelector<HTMLElement>(`[data-game-id="${selected}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [selected]);

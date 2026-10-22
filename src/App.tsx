@@ -8,7 +8,7 @@ import { Wardrobe } from './components/Wardrobe';
 import { realtime, type GameTransactionResult, type RoomSnapshot } from './services/realtime';
 import { voice } from './services/voice';
 import { seedPlayers } from './data';
-import { applyProfileReward, applySharedGameAction, createSharedGame, isMultiplayerGame, normalizeSharedGame, partyRoundWinnerIds, refreshWaitingGame } from './gameEngine';
+import { applyProfileReward, applySharedGameAction, createSharedGame, isMultiplayerGame, normalizeSharedGame, partyRoundWinnerIds, refreshSharedGameRoster } from './gameEngine';
 import type { ChatMessage, GameId, PartyState, PlayerProfile, SharedGameAction, SharedGameState, View } from './types';
 import { cozyAudio } from './services/audio';
 import { googleAuthErrorMessage } from './authErrors';
@@ -135,7 +135,7 @@ function App() {
     const now = Date.now();
     const update = (current: SharedGameState | null) => {
       if (!current || current.gameId !== gameId) return createSharedGame(gameId, ids, now);
-      return refreshWaitingGame(current, ids, now);
+      return refreshSharedGameRoster(current, ids, now);
     };
     const online = await realtime.transactGame(update);
     if (online) setSharedGame(online.state ? normalizeSharedGame(online.state) : null);

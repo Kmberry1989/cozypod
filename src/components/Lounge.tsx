@@ -37,6 +37,7 @@ export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady
   const [draft, setDraft] = useState('');
   const [drawer, setDrawer] = useState<'toys' | 'party' | null>(null);
   const [promptIndex, setPromptIndex] = useState(0);
+  const [showAllEmotes, setShowAllEmotes] = useState(false);
   const readyCount = players.filter((player) => player.ready).length;
   const allReady = players.length > 0 && readyCount === players.length;
   const needsFriend = party.queue.some(isMultiplayerGame) && players.length < 2;
@@ -80,8 +81,8 @@ export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady
       <div className="social-panel">
         <div className="emote-strip" aria-label="Quick reactions">
           <button type="button" onClick={() => onMessage('Anyone up for a game?')}>💬 <span>Chat</span></button>
-          {['👋', '❤️', '👏', '🎉'].map((emoji) => <button key={emoji} type="button" aria-label={`Send ${emoji} reaction`} onClick={() => onEmote(emoji)}>{emoji}</button>)}
-          <button type="button" aria-label="More reactions" onClick={() => onReward('More reactions coming soon')}>•••</button>
+          {(showAllEmotes ? ['👋', '❤️', '👏', '🎉', '😂', '🌱', '✨', '☕', '🔥', '🤝'] : ['👋', '❤️', '👏', '🎉']).map((emoji) => <button key={emoji} type="button" aria-label={`Send ${emoji} reaction`} onClick={() => onEmote(emoji)}>{emoji}</button>)}
+          <button type="button" aria-label={showAllEmotes ? 'Fewer reactions' : 'More reactions'} onClick={() => setShowAllEmotes((value) => !value)}>{showAllEmotes ? '−' : '•••'}</button>
         </div>
         <div className="chat-list" aria-live="polite">
           {!recentMessages.length && <p className="empty-chat">No messages yet. Say hello to your Pod.</p>}

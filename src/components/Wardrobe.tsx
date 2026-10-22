@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, ChevronRight, Lock, Pencil, Shuffle } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Lock, Shuffle } from 'lucide-react';
 import type { ContentAsset } from '../contentLibrary';
 import { clubhouseUnlock, rewardUnlock, useContentLibrary } from '../contentLibrary';
 import type { PlayerProfile } from '../types';
@@ -19,16 +19,17 @@ export function Wardrobe({ player, onChange }: WardrobeProps) {
   const toys = byCategory('toys');
   const backgrounds = byCategory('room-backgrounds');
   const randomize = () => onChange({ ...player, look: { body: randomUnlockedValue(bodies, player), sprout: randomUnlockedValue(headwear, player), face: randomUnlockedValue(faces, player), hat: hats.length && Math.random() > .45 ? randomUnlockedValue(hats, player) : undefined } });
+  const cycleOutfit = (direction: -1 | 1) => onChange({ ...player, look: { ...player.look, body: cycleUnlockedValue(bodies, player.look.body, player, direction), sprout: cycleUnlockedValue(headwear, player.look.sprout, player, direction), face: cycleUnlockedValue(faces, player.look.face, player, direction) } });
   const equipLayer = (part: 'body' | 'sprout' | 'face' | 'hat', asset: ContentAsset) => onChange({ ...player, look: { ...player.look, [part]: assetValue(asset) } });
 
   return (
     <section className="wardrobe-screen" aria-labelledby="wardrobe-title">
       <div className="screen-heading"><div><h1 id="wardrobe-title">Wardrobe</h1><p>Make your Podling feel like you</p></div><button type="button" onClick={randomize}><Shuffle size={17} /> Surprise me</button></div>
       <div className="wardrobe-preview" style={player.roomBackground ? { backgroundImage: `url(${player.roomBackground})` } : undefined}>
-        <button type="button" aria-label="Previous outfit"><ChevronLeft /></button>
+        <button type="button" aria-label="Previous outfit" onClick={() => cycleOutfit(-1)}><ChevronLeft /></button>
         <div className="preview-plinth"><Podling look={player.look} size="large" /><span className="plinth" /></div>
-        <button type="button" aria-label="Next outfit"><ChevronRight /></button>
-        <div className="profile-card"><strong>{player.name}<Pencil size={14} /></strong><span>{player.status}<Pencil size={12} /></span></div>
+        <button type="button" aria-label="Next outfit" onClick={() => cycleOutfit(1)}><ChevronRight /></button>
+        <div className="profile-card"><strong>{player.name}</strong><span>{player.status}</span></div>
       </div>
       <div className="customizer">
         <AssetRail title="Body" assets={bodies} selected={player.look.body} player={player} onSelect={(asset) => equipLayer('body', asset)} />
@@ -62,4 +63,12 @@ function randomUnlockedValue(assets: ContentAsset[], player: PlayerProfile) {
   const unlocked = assets.filter((asset, index) => rewardUnlock(asset, index, assets, player).unlocked);
   const asset = unlocked[Math.floor(Math.random() * unlocked.length)];
   return asset ? assetValue(asset) : '';
+}
+
+function cycleUnlockedValue(assets: ContentAsset[], current: string, player: PlayerProfile, direction: -1 | 1) {
+  const unlocked = assets.filter((asset, index) => rewardUnlock(asset, index, assets, player).unlocked);
+  if (!unlocked.length) return current;
+  const currentIndex = unlocked.findIndex((asset) => assetValue(asset) === current || asset.id === current);
+  const nextIndex = (Math.max(0, currentIndex) + direction + unlocked.length) % unlocked.length;
+  return assetValue(unlocked[nextIndex]);
 }

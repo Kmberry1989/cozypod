@@ -19,7 +19,7 @@ export function Drop4Stage({ players, meId, game, onAction }: SharedStageProps<D
   const status = missingSeat ? 'Paused until both seated players are here.' : game.phase === 'draw' ? 'The board is full — cozy draw!' : game.phase === 'finished' ? `${winner} lined up four!` : canPlay ? 'Your turn — choose a column.' : `${playerName(players, currentId)}’s turn`;
   return (
     <div className="drop4-stage game-stage">
-      <div className="game-title-row"><div><h2>Drop 4</h2><p>{status}</p></div><button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Drop 4"><RotateCcw size={18} /></button></div>
+      <div className="game-title-row"><div><h2>Drop 4</h2><p>{status}</p></div>{(game.phase === 'finished' || game.phase === 'draw') && <button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Drop 4"><RotateCcw size={18} /></button>}</div>
       <div className={`drop-board ${canPlay ? 'can-play' : 'locked-board'}`} aria-label="Drop 4 board">
         {game.board.map((cell, index) => <button key={index} disabled={!canPlay} type="button" className={cell === 0 ? 'red' : cell === 1 ? 'yellow' : ''} onClick={() => void onAction({ type: 'drop-disc', column: index % 7 })} aria-label={`Column ${(index % 7) + 1}${cell === -1 ? ', empty' : ', occupied'}`}><span /></button>)}
       </div>
@@ -79,7 +79,7 @@ export function WordBombStage({ players, meId, game, onAction }: SharedStageProp
   const status = game.phase === 'finished' ? `${playerName(players, game.timedOutPlayerId || '')} ran out of time. ${playerName(players, game.winnerId || '')} wins!` : myTurn ? message : `${playerName(players, currentId)} is thinking…`;
   return (
     <div className="word-stage game-stage">
-      <div className="game-title-row"><div><h2>Word Bomb</h2><p>{status}</p></div><button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Word Bomb"><RotateCcw size={18} /></button></div>
+      <div className="game-title-row"><div><h2>Word Bomb</h2><p>{status}</p></div>{game.phase === 'finished' && <button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Word Bomb"><RotateCcw size={18} /></button>}</div>
       <div className="bomb-orb"><span>{syllable}</span><small>{game.phase === 'playing' ? remaining : 0}s</small></div>
       <div className="word-chain">{game.chain.slice(-5).map((entry, index) => <span key={`${entry.playerId}-${entry.word}-${index}`}>{entry.word}</span>)}</div>
       <form className="word-form" onSubmit={submit}><input disabled={!myTurn} value={word} onChange={(event) => setWord(event.target.value)} placeholder={myTurn ? `A word with ${syllable}…` : 'Waiting for your turn…'} autoFocus={myTurn} /><button disabled={!myTurn} type="submit">Send</button></form>
@@ -280,7 +280,7 @@ export function ReversiStage({ players, meId, game, onAction }: SharedStageProps
   const scores = reversiScores(game.board);
   const status = missingSeat ? 'Paused while a seated player reconnects.' : game.phase === 'draw' ? 'The grove is perfectly balanced.' : game.phase === 'finished' ? `${playerName(players, game.winnerId || '')} claimed the grove!` : canPlay ? 'Your turn — choose a glowing leaf.' : `${playerName(players, currentId)}’s turn`;
   return <div className="reversi-stage game-stage">
-    <div className="game-title-row"><div><h2>Mossy Reversi</h2><p>{status}</p></div><button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Mossy Reversi"><RotateCcw size={18} /></button></div>
+    <div className="game-title-row"><div><h2>Mossy Reversi</h2><p>{status}</p></div>{(game.phase === 'finished' || game.phase === 'draw') && <button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Mossy Reversi"><RotateCcw size={18} /></button>}</div>
     <div className="reversi-layout">
       <div className="reversi-board" aria-label="Mossy Reversi board">{game.board.map((cell, index) => <button key={index} type="button" disabled={!canPlay || !legalMoves.has(index)} className={`${cell === 0 ? 'cream-disc' : cell === 1 ? 'moss-disc' : ''} ${legalMoves.has(index) && canPlay ? 'legal-move' : ''}`} aria-label={cell === -1 ? `Square ${index + 1}${legalMoves.has(index) ? ', legal move' : ''}` : `${cell === 0 ? 'Cream' : 'Moss'} disc`} onClick={() => void onAction({ type: 'place-reversi', index })}><span /></button>)}</div>
       <div className="strategy-score">{game.playerIds.map((id, index) => <div className={game.phase === 'playing' && game.turnIndex === index ? 'active' : ''} key={id}><i className={index === 0 ? 'cream-token' : 'moss-token'} /><span><small>{id === meId ? 'You' : 'Friend'}</small><strong>{playerName(players, id)}</strong></span><b>{scores[index]}</b></div>)}</div>
@@ -300,7 +300,7 @@ export function BridgeStage({ players, meId, game, onAction }: SharedStageProps<
   const legal = new Set(validBridgePlacements(game.board, mask));
   const status = !currentPresent ? `Waiting for ${playerName(players, currentId)} to reconnect.` : game.phase === 'draw' ? 'No dry timber left — cozy draw!' : game.phase === 'finished' ? `${playerName(players, game.winnerId || '')} completed the crossing!` : canPlay ? 'Your turn — extend the connected route.' : `${playerName(players, currentId)} is building…`;
   return <div className="bridge-stage game-stage">
-    <div className="game-title-row"><div><h2>Bridge Builders</h2><p>{status}</p></div><button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Bridge Builders"><RotateCcw size={18} /></button></div>
+    <div className="game-title-row"><div><h2>Bridge Builders</h2><p>{status}</p></div>{(game.phase === 'finished' || game.phase === 'draw') && <button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Bridge Builders"><RotateCcw size={18} /></button>}</div>
     <div className="bridge-tools" aria-label="Choose a bridge tile">{bridgeTileNames.map((name, index) => <button key={name} type="button" className={tile === index ? 'selected' : ''} onClick={() => setTile(index)} aria-label={name}><span className={`bridge-art sprite-${index}`} style={{ backgroundImage: `url(${bridgeTiles})` }} /><small>{name}</small></button>)}<button type="button" className="rotate-bridge" onClick={() => setRotation((value) => (value + 1) % 4)}>Rotate ↻</button></div>
     <div className="bridge-board" aria-label="Bridge Builders board">{game.board.map((cell, index) => {
       const visual = bridgeVisual(cell); const isBank = index === 21 || index === 27;

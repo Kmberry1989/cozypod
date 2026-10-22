@@ -124,8 +124,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .lounge-rail button { min-height: 45px; border: 0; border-radius: 11px; color: #ffeacb; background: rgba(255, 235, 206, .08); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 9px; font-weight: 900; }
 .lounge-rail button:hover { background: rgba(255, 235, 206, .16); }
 .social-panel { padding: 6px 10px 9px; background: linear-gradient(180deg, #6a3824, #4b281c); color: #fff1dc; border-top: 1px solid rgba(255, 239, 214, .16); }
-.emote-strip { height: 36px; display: flex; gap: 5px; align-items: center; }
-.emote-strip button { height: 30px; min-width: 33px; padding: 0 7px; border: 1px solid rgba(255, 231, 196, .22); border-radius: 9px; background: rgba(255, 241, 218, .08); color: #fff; font-size: 15px; font-weight: 900; }
+.emote-strip { height: 36px; display: flex; gap: 5px; align-items: center; overflow-x: auto; scrollbar-width: none; }
+.emote-strip::-webkit-scrollbar { display: none; }
+.emote-strip button { flex: none; height: 30px; min-width: 33px; padding: 0 7px; border: 1px solid rgba(255, 231, 196, .22); border-radius: 9px; background: rgba(255, 241, 218, .08); color: #fff; font-size: 15px; font-weight: 900; }
 .emote-strip button:first-child { display: flex; gap: 5px; align-items: center; padding: 0 10px; background: #e8c18d; color: #4c2b20; }
 .emote-strip button span { font-size: 10px; }
 .chat-list { display: grid; gap: 2px; max-height: 76px; overflow: hidden; margin: 3px 0 6px; }

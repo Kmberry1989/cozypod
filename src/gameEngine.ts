@@ -94,12 +94,16 @@ export function normalizeSharedGame(state: SharedGameState): SharedGameState {
   return { ...state, available: state.available || createMarketRow(state.seed, state.round), inventories: state.inventories || {}, scores: state.scores || {}, winnerIds: state.winnerIds || [] };
 }
 
-export function refreshWaitingGame(state: SharedGameState, playerIds: string[], now = Date.now()) {
+export function refreshSharedGameRoster(state: SharedGameState, playerIds: string[], now = Date.now()) {
   state = normalizeSharedGame(state);
-  if (state.phase !== 'waiting') return state;
   const players = [...new Set(playerIds)].slice(0, 4);
-  if (players.length < 2 && sameIds(players, state.playerIds)) return state;
-  return createSharedGame(state.gameId, players, now);
+  if (state.phase === 'waiting') {
+    if (players.length < 2 && sameIds(players, state.playerIds)) return state;
+    return createSharedGame(state.gameId, players, now);
+  }
+  if (state.gameId !== 'hottakes' || state.phase !== 'playing' || state.revealed || sameIds(players, state.playerIds)) return state;
+  const votes = Object.fromEntries(Object.entries(state.votes).filter(([voter, target]) => players.includes(voter) && players.includes(target)));
+  return { ...state, playerIds: players, votes, revealed: players.length > 0 && Object.keys(votes).length === players.length, updatedAt: now };
 }
 
 export function applySharedGameAction(state: SharedGameState, action: SharedGameAction, actorId: string, now = Date.now()): SharedGameState {
@@ -109,7 +113,10 @@ export function applySharedGameAction(state: SharedGameState, action: SharedGame
     if (!isSharedGameComplete(state) || state.rewardClaims[actorId]) return state;
     return { ...state, rewardClaims: { ...state.rewardClaims, [actorId]: true }, updatedAt: now };
   }
-  if (action.type === 'restart') return createSharedGame(state.gameId, state.playerIds, now);
+  if (action.type === 'restart') {
+    if (state.phase !== 'finished' && state.phase !== 'draw' && state.phase !== 'lost') return state;
+    return createSharedGame(state.gameId, state.playerIds, now);
+  }
 
   if (state.gameId === 'drop4' && action.type === 'drop-disc') {
     if (state.phase !== 'playing' || state.playerIds[state.turnIndex] !== actorId) return state;
@@ -335,6 +342,10 @@ export function isSharedGameComplete(state: SharedGameState | null) {
   if (!state) return false;
   if (state.gameId === 'hottakes') return state.revealed;
   return state.phase === 'finished' || state.phase === 'draw';
+}
+
+export function isSharedGameSettled(state: SharedGameState | null) {
+  return isSharedGameComplete(state) || state?.phase === 'lost';
 }
 
 export function nextTriviaQuestion(index: number, count: number) {
