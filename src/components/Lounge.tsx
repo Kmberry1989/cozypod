@@ -49,13 +49,23 @@ export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady
     onMessage(draft.trim());
     setDraft('');
   };
+  const copyInvite = async () => {
+    const link = `${location.origin}${location.pathname}?room=${roomCode}`;
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(link);
+      onReward('Invite link copied!');
+    } catch {
+      onReward(`Invite code: ${roomCode}`);
+    }
+  };
 
   return (
     <section className="lounge-screen" aria-label="CozyPod lounge">
       <div className="lounge-stage">
         <img className="lounge-background" src={players[0].roomBackground || `${import.meta.env.BASE_URL}art/v2/lounge-rainy.webp`} alt="A warm clay clubhouse on a rainy evening" />
         <div className="rain-layer" aria-hidden="true" />
-        <button className="room-share" type="button" onClick={() => navigator.clipboard?.writeText(`${location.origin}${location.pathname}?room=${roomCode}`)}><Copy size={14} /> Invite</button>
+        <button className="room-share" type="button" onClick={() => void copyInvite()}><Copy size={14} /> Invite</button>
         <button className="party-callout" type="button" onClick={() => setDrawer('party')}>
           <UsersRound size={18} /><span><strong>{readyCount}/{players.length} ready · {players.length}/4 friends</strong><small>{party.queue.length ? `${party.queue.length} games queued` : 'Build a party queue'}</small></span><ChevronRight size={18} />
         </button>

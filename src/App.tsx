@@ -39,6 +39,7 @@ function App() {
   const [toast, setToast] = useState<string | null>(null);
   const sharedGameRef = useRef<SharedGameState | null>(null);
   const roomUnsubscribeRef = useRef<() => void>(() => undefined);
+  const previousPartyPhase = useRef(party.phase);
 
   const me = players[0];
   const meRef = useRef(me);
@@ -46,6 +47,18 @@ function App() {
   useEffect(() => { meRef.current = me; }, [me]);
   useEffect(() => { localStorage.setItem('cozypod_v2_profile', JSON.stringify(me)); }, [me]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(null), 3600); return () => clearTimeout(timer); }, [toast]);
+  useEffect(() => {
+    const previous = previousPartyPhase.current;
+    previousPartyPhase.current = party.phase;
+    if (!joined || party.phase !== 'lounge' || previous === 'lounge') return;
+    setView('lounge');
+    if (me.ready) {
+      const updated = { ...me, ready: false };
+      meRef.current = updated;
+      setPlayers((current) => [updated, ...current.slice(1)]);
+      void realtime.updatePlayer(updated);
+    }
+  }, [joined, me, party.phase]);
   useEffect(() => {
     const playTap = (event: PointerEvent) => { if ((event.target as HTMLElement).closest('button, label[for]')) cozyAudio.tap(); };
     const blockNativeGesture = (event: Event) => {
