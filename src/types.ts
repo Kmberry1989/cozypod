@@ -1,6 +1,6 @@
 export type View = 'lounge' | 'arcade' | 'wardrobe';
-export type GameId = 'drop4' | 'wordbomb' | 'trivia' | 'melody' | 'reflex' | 'hottakes' | 'lanterns';
-export type MultiplayerGameId = 'drop4' | 'wordbomb' | 'hottakes' | 'lanterns';
+export type GameId = 'drop4' | 'wordbomb' | 'trivia' | 'melody' | 'reflex' | 'hottakes' | 'lanterns' | 'reversi' | 'bridges' | 'market';
+export type MultiplayerGameId = 'drop4' | 'wordbomb' | 'hottakes' | 'lanterns' | 'reversi' | 'bridges' | 'market';
 export type BodyColor = string;
 export type Sprout = string;
 export type Face = string;
@@ -102,7 +102,33 @@ export interface LanternGameState extends SharedGameBase {
   rewardClaims: Record<string, boolean>;
 }
 
-export type SharedGameState = Drop4GameState | WordBombGameState | HotTakesGameState | LanternGameState;
+export interface ReversiGameState extends SharedGameBase {
+  gameId: 'reversi';
+  board: Array<-1 | 0 | 1>;
+  turnIndex: 0 | 1;
+  winnerId?: string;
+}
+
+export interface BridgeGameState extends SharedGameBase {
+  gameId: 'bridges';
+  board: number[];
+  owners: number[];
+  turnIndex: number;
+  winnerId?: string;
+}
+
+export interface MarketGameState extends SharedGameBase {
+  gameId: 'market';
+  seed: number;
+  round: number;
+  turnIndex: number;
+  available: number[];
+  inventories: Record<string, number[]>;
+  scores: Record<string, number>;
+  winnerIds: string[];
+}
+
+export type SharedGameState = Drop4GameState | WordBombGameState | HotTakesGameState | LanternGameState | ReversiGameState | BridgeGameState | MarketGameState;
 
 export type SharedGameAction =
   | { type: 'restart' }
@@ -114,7 +140,10 @@ export type SharedGameAction =
   | { type: 'start-lanterns' }
   | { type: 'resolve-lantern'; lantern: number }
   | { type: 'lantern-tick' }
-  | { type: 'claim-lantern-reward' };
+  | { type: 'claim-lantern-reward' }
+  | { type: 'place-reversi'; index: number }
+  | { type: 'place-bridge'; index: number; tile: number; rotation: number }
+  | { type: 'pick-market'; slot: number };
 
 export interface TriviaQuestion {
   category: string;

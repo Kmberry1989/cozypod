@@ -2,7 +2,7 @@ import { BookOpen } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
 import { games } from '../data';
 import type { GameId, PartyState, PlayerProfile, SharedGameAction, SharedGameState } from '../types';
-import { Drop4Stage, HotTakesStage, LanternStage, MelodyStage, ReflexStage, TriviaStage, WordBombStage } from './GameStages';
+import { BridgeStage, Drop4Stage, HotTakesStage, LanternStage, MarketStage, MelodyStage, ReflexStage, ReversiStage, TriviaStage, WordBombStage } from './GameStages';
 
 interface ArcadeProps {
   players: PlayerProfile[];
@@ -23,6 +23,9 @@ const rules: Record<GameId, string> = {
   reflex: 'Start the round, wait for the lantern to glow, then tap as quickly as you can.',
   hottakes: 'Every player votes once. Results appear after everyone has locked a vote.',
   lanterns: 'Work together for sixty seconds. Tap a threatened lantern before its hazard lands.',
+  reversi: 'Two players place discs to trap and flip straight lines. If you have no legal move, your turn is skipped. Most discs wins.',
+  bridges: 'Two to four players extend one connected route. Choose and rotate a tile; the player whose placement reaches the far cottage wins.',
+  market: 'Two to four players draft one item per round for three rounds. A pair scores 4, three different score 5, and a matching trio scores 9.',
 };
 
 export function Arcade({ players, meId, selected, party, sharedGame, onSelect, onGameAction, onReward }: ArcadeProps) {
@@ -43,6 +46,9 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
         {selected === 'reflex' && <ReflexStage />}
         {selected === 'hottakes' && <HotTakesStage players={players} meId={meId} game={sharedGame?.gameId === 'hottakes' ? sharedGame : null} onAction={onGameAction} />}
         {selected === 'lanterns' && <LanternStage players={players} meId={meId} game={sharedGame?.gameId === 'lanterns' ? sharedGame : null} onAction={onGameAction} onWin={() => onReward('Storm cleared! Everyone earned +40 coins and +30 XP.')} />}
+        {selected === 'reversi' && <ReversiStage players={players} meId={meId} game={sharedGame?.gameId === 'reversi' ? sharedGame : null} onAction={onGameAction} />}
+        {selected === 'bridges' && <BridgeStage players={players} meId={meId} game={sharedGame?.gameId === 'bridges' ? sharedGame : null} onAction={onGameAction} />}
+        {selected === 'market' && <MarketStage players={players} meId={meId} game={sharedGame?.gameId === 'market' ? sharedGame : null} onAction={onGameAction} />}
       </div>
     </section>
   );

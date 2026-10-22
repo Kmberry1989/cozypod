@@ -8,6 +8,9 @@ export const games: GameMeta[] = [
   { id: 'reflex', label: 'Reflex', icon: '⚡', color: '#e7a62e', description: 'Wait for the glow. Then tap!' },
   { id: 'hottakes', label: 'Hot Takes', icon: '🔥', color: '#e96746', description: 'Vote, reveal, and defend your choice.' },
   { id: 'lanterns', label: 'Lantern Keepers', icon: '🏮', color: '#4f94a1', description: 'Keep the clubhouse glowing together.', cooperative: true },
+  { id: 'reversi', label: 'Mossy Reversi', icon: '🍃', color: '#628753', description: 'Flip the grove and claim the most moss.' },
+  { id: 'bridges', label: 'Bridge Builders', icon: '🌉', color: '#438eaa', description: 'Place path tiles and finish the crossing.' },
+  { id: 'market', label: 'Cozy Market', icon: '🧺', color: '#c97743', description: 'Draft three treasures into the best set.' },
 ];
 
 export const seedPlayers: PlayerProfile[] = [

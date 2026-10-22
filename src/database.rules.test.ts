@@ -51,6 +51,9 @@ describe.skipIf(!emulatorAvailable)('Realtime Database room game rules', () => {
   test('allows a connected room member to create valid shared game state', async () => {
     const database = environment.authenticatedContext('alice').database();
     await assertSucceeds(set(ref(database, `${roomPath}/party/game`), validGame));
+    for (const gameId of ['reversi', 'bridges', 'market']) {
+      await assertSucceeds(set(ref(database, `${roomPath}/party/game`), { ...validGame, sessionId: `${gameId}-1`, gameId }));
+    }
   });
 
   test('rejects game writes from someone outside the room', async () => {

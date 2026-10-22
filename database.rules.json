@@ -21,7 +21,7 @@
           "party": {
             ".write": "auth != null && root.child('v2/rooms').child($room).child('players').child(auth.uid).exists()",
             "game": {
-              ".validate": "!newData.exists() || (newData.hasChildren(['sessionId','gameId','phase','playerIds','createdAt','updatedAt']) && newData.child('sessionId').isString() && newData.child('sessionId').val().length <= 180 && (newData.child('gameId').val() === 'drop4' || newData.child('gameId').val() === 'wordbomb' || newData.child('gameId').val() === 'hottakes' || newData.child('gameId').val() === 'lanterns') && newData.child('playerIds').child('0').isString() && !newData.child('playerIds').child('4').exists() && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber())"
+              ".validate": "!newData.exists() || (newData.hasChildren(['sessionId','gameId','phase','playerIds','createdAt','updatedAt']) && newData.child('sessionId').isString() && newData.child('sessionId').val().length <= 180 && (newData.child('gameId').val() === 'drop4' || newData.child('gameId').val() === 'wordbomb' || newData.child('gameId').val() === 'hottakes' || newData.child('gameId').val() === 'lanterns' || newData.child('gameId').val() === 'reversi' || newData.child('gameId').val() === 'bridges' || newData.child('gameId').val() === 'market') && newData.child('playerIds').child('0').isString() && !newData.child('playerIds').child('4').exists() && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber())"
             }
           }
         }

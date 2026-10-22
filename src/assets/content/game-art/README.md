@@ -11,3 +11,13 @@
   `lanterns-wind.webp` or `drop4-board.webp`.
 - **Important:** files auto-register in the content library; a game module still
   determines the semantic role, animation, collision, and interaction.
+
+## Included arcade strips
+
+- `cozy-market-items.webp`: 1983×793 transparent WebP, five evenly spaced item
+  slots ordered tea, yarn, pastry, candle, book.
+- `bridge-tiles.webp`: 2172×724 transparent WebP, five evenly spaced tile slots
+  ordered straight, corner, junction, crossing, island.
+
+Keep the item order and transparent padding when replacing either strip; the
+game UI addresses each sprite by its 0–4 slot position.

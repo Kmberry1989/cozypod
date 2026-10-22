@@ -133,8 +133,8 @@ function App() {
   }, [players]);
 
   useEffect(() => {
-    if (joined && isMultiplayerGame(selectedGame)) void ensureSharedGame(selectedGame, players);
-  }, [joined, selectedGame, players, ensureSharedGame]);
+    if (joined && sharedGame?.gameId === selectedGame) void ensureSharedGame(selectedGame, players);
+  }, [joined, selectedGame, players, sharedGame?.gameId, ensureSharedGame]);
 
   const addMessage = (text: string) => {
     const message = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, playerId: me.id, name: me.name, text, createdAt: Date.now() };

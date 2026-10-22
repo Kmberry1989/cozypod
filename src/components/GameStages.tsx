@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Check, CloudRain, Flame, RotateCcw, Sparkles, Wind } from 'lucide-react';
 import { hotTakePrompts, trivia, wordSyllables } from '../data';
-import { activeLanternEvents, melodyTap, nextTriviaQuestion, reflexTap, validateWord, type LanternHazard } from '../gameEngine';
-import type { Drop4GameState, HotTakesGameState, LanternGameState, PlayerProfile, SharedGameAction, SharedGameState, WordBombGameState } from '../types';
+import { activeLanternEvents, bridgeTileMask, melodyTap, nextTriviaQuestion, reflexTap, reversiScores, reversiValidMoves, scoreMarketInventory, validBridgePlacements, validateWord, type LanternHazard } from '../gameEngine';
+import type { BridgeGameState, Drop4GameState, HotTakesGameState, LanternGameState, MarketGameState, PlayerProfile, ReversiGameState, SharedGameAction, SharedGameState, WordBombGameState } from '../types';
 import { Podling } from './Podling';
+import bridgeTiles from '../assets/content/game-art/bridge-tiles.webp';
+import marketItems from '../assets/content/game-art/cozy-market-items.webp';
 
 type GameActionHandler = (action: SharedGameAction) => Promise<{ state: SharedGameState | null; changed: boolean }>;
 interface SharedStageProps<T> { players: PlayerProfile[]; meId: string; game: T | null; onAction: GameActionHandler; }
@@ -161,6 +163,74 @@ export function LanternStage({ players, meId, game, onAction, onWin }: SharedSta
       {game.phase !== 'playing' && <button className="stage-action" type="button" onClick={() => void onAction({ type: 'start-lanterns' })}>{game.phase === 'ready' ? 'Light the lanterns' : 'Play another storm'}</button>}
     </div>
   );
+}
+
+export function ReversiStage({ players, meId, game, onAction }: SharedStageProps<ReversiGameState>) {
+  if (!game || game.phase === 'waiting') return <WaitingForFriends title="Mossy Reversi" />;
+  const missingSeat = game.playerIds.some((id) => !players.some((player) => player.id === id));
+  const currentId = game.playerIds[game.turnIndex];
+  const canPlay = game.phase === 'playing' && !missingSeat && currentId === meId;
+  const legalMoves = new Set(reversiValidMoves(game.board, game.turnIndex));
+  const scores = reversiScores(game.board);
+  const status = missingSeat ? 'Paused while a seated player reconnects.' : game.phase === 'draw' ? 'The grove is perfectly balanced.' : game.phase === 'finished' ? `${playerName(players, game.winnerId || '')} claimed the grove!` : canPlay ? 'Your turn — choose a glowing leaf.' : `${playerName(players, currentId)}’s turn`;
+  return <div className="reversi-stage game-stage">
+    <div className="game-title-row"><div><h2>Mossy Reversi</h2><p>{status}</p></div><button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Mossy Reversi"><RotateCcw size={18} /></button></div>
+    <div className="reversi-layout">
+      <div className="reversi-board" aria-label="Mossy Reversi board">{game.board.map((cell, index) => <button key={index} type="button" disabled={!canPlay || !legalMoves.has(index)} className={`${cell === 0 ? 'cream-disc' : cell === 1 ? 'moss-disc' : ''} ${legalMoves.has(index) && canPlay ? 'legal-move' : ''}`} aria-label={cell === -1 ? `Square ${index + 1}${legalMoves.has(index) ? ', legal move' : ''}` : `${cell === 0 ? 'Cream' : 'Moss'} disc`} onClick={() => void onAction({ type: 'place-reversi', index })}><span /></button>)}</div>
+      <div className="strategy-score">{game.playerIds.map((id, index) => <div className={game.phase === 'playing' && game.turnIndex === index ? 'active' : ''} key={id}><i className={index === 0 ? 'cream-token' : 'moss-token'} /><span><small>{id === meId ? 'You' : 'Friend'}</small><strong>{playerName(players, id)}</strong></span><b>{scores[index]}</b></div>)}</div>
+    </div>
+  </div>;
+}
+
+const bridgeTileNames = ['Straight', 'Corner', 'Junction', 'Crossing'];
+export function BridgeStage({ players, meId, game, onAction }: SharedStageProps<BridgeGameState>) {
+  const [tile, setTile] = useState(0);
+  const [rotation, setRotation] = useState(0);
+  if (!game || game.phase === 'waiting') return <WaitingForFriends title="Bridge Builders" />;
+  const currentId = game.playerIds[game.turnIndex];
+  const currentPresent = players.some((player) => player.id === currentId);
+  const canPlay = game.phase === 'playing' && currentPresent && currentId === meId;
+  const mask = bridgeTileMask(tile, rotation);
+  const legal = new Set(validBridgePlacements(game.board, mask));
+  const status = !currentPresent ? `Waiting for ${playerName(players, currentId)} to reconnect.` : game.phase === 'draw' ? 'No dry timber left — cozy draw!' : game.phase === 'finished' ? `${playerName(players, game.winnerId || '')} completed the crossing!` : canPlay ? 'Your turn — extend the connected route.' : `${playerName(players, currentId)} is building…`;
+  return <div className="bridge-stage game-stage">
+    <div className="game-title-row"><div><h2>Bridge Builders</h2><p>{status}</p></div><button type="button" onClick={() => void onAction({ type: 'restart' })} aria-label="Restart Bridge Builders"><RotateCcw size={18} /></button></div>
+    <div className="bridge-tools" aria-label="Choose a bridge tile">{bridgeTileNames.map((name, index) => <button key={name} type="button" className={tile === index ? 'selected' : ''} onClick={() => setTile(index)} aria-label={name}><span className={`bridge-art sprite-${index}`} style={{ backgroundImage: `url(${bridgeTiles})` }} /><small>{name}</small></button>)}<button type="button" className="rotate-bridge" onClick={() => setRotation((value) => (value + 1) % 4)}>Rotate ↻</button></div>
+    <div className="bridge-board" aria-label="Bridge Builders board">{game.board.map((cell, index) => {
+      const visual = bridgeVisual(cell); const isBank = index === 21 || index === 27;
+      return <button key={index} type="button" disabled={!canPlay || !legal.has(index)} className={`${isBank ? 'bridge-bank' : cell ? 'placed-bridge' : ''} ${legal.has(index) && canPlay ? 'legal-bridge' : ''}`} onClick={() => void onAction({ type: 'place-bridge', index, tile, rotation })} aria-label={isBank ? (index === 21 ? 'Start cottage' : 'Goal cottage') : cell ? 'Placed bridge tile' : `River square ${index + 1}${legal.has(index) ? ', valid placement' : ''}`}>{isBank ? <span>{index === 21 ? '🏡' : '🏠'}</span> : cell ? <span className={`bridge-art sprite-${visual.tile}`} style={{ backgroundImage: `url(${bridgeTiles})`, transform: `rotate(${visual.rotation * 90}deg) scale(1.35)` }} /> : null}</button>;
+    })}</div>
+    <div className="bridge-turns">{game.playerIds.map((id, index) => <span className={game.turnIndex === index && game.phase === 'playing' ? 'active' : ''} key={id}><i style={{ background: ['#4f9ed1', '#e6624e', '#e8b43e', '#8a67c7'][index] }} />{id === meId ? 'You' : playerName(players, id)}</span>)}</div>
+  </div>;
+}
+
+const marketItemNames = ['Herbal Tea', 'Wool Yarn', 'Sweet Roll', 'Cozy Candle', 'Story Book'];
+export function MarketStage({ players, meId, game, onAction }: SharedStageProps<MarketGameState>) {
+  if (!game || game.phase === 'waiting') return <WaitingForFriends title="Cozy Market" />;
+  const currentId = game.playerIds[game.turnIndex];
+  const currentPresent = players.some((player) => player.id === currentId);
+  const canPlay = game.phase === 'playing' && currentPresent && currentId === meId;
+  const winnerNames = game.winnerIds.map((id) => playerName(players, id)).join(' & ');
+  const status = game.phase === 'finished' ? `${winnerNames} won the market!` : !currentPresent ? `Waiting for ${playerName(players, currentId)} to reconnect.` : canPlay ? 'Your pick — build a pair, trio, or variety set.' : `${playerName(players, currentId)} is choosing…`;
+  return <div className="market-stage game-stage">
+    <div className="game-title-row"><div><h2>Cozy Market</h2><p>{status}</p></div><div className="market-round">Round {game.round}/3</div></div>
+    <div className="market-row" aria-label="Market items">{game.available.map((item, slot) => <button key={`${game.round}-${slot}-${item}`} type="button" disabled={!canPlay} onClick={() => void onAction({ type: 'pick-market', slot })}><span className={`market-art sprite-${item}`} style={{ backgroundImage: `url(${marketItems})` }} /><strong>{marketItemNames[item]}</strong><small>Pick item</small></button>)}</div>
+    <div className="market-baskets">{game.playerIds.map((id, index) => { const inventory = game.inventories[id] || []; const score = game.phase === 'finished' ? game.scores[id] : scoreMarketInventory(inventory); return <div className={game.turnIndex === index && game.phase === 'playing' ? 'active' : ''} key={id}><header><span><small>{id === meId ? 'Your basket' : 'Friend'}</small><strong>{playerName(players, id)}</strong></span><b>{score} pts</b></header><section>{inventory.map((item, itemIndex) => <span key={`${item}-${itemIndex}`} className={`market-art sprite-${item}`} style={{ backgroundImage: `url(${marketItems})` }} />)}{!inventory.length && <em>Empty basket</em>}</section></div>; })}</div>
+    {game.phase === 'finished' && <button className="stage-action" type="button" onClick={() => void onAction({ type: 'restart' })}>Open a new market</button>}
+  </div>;
+}
+
+function bridgeVisual(mask: number) {
+  const bits = [1, 2, 4, 8].filter((bit) => mask & bit);
+  if (bits.length === 4) return { tile: 3, rotation: 0 };
+  if (bits.length === 3) {
+    const rotations = [11, 7, 14, 13];
+    return { tile: 2, rotation: Math.max(0, rotations.indexOf(mask)) };
+  }
+  if (mask === 10) return { tile: 0, rotation: 0 };
+  if (mask === 5) return { tile: 0, rotation: 1 };
+  const rotations = [3, 6, 12, 9];
+  return { tile: 1, rotation: Math.max(0, rotations.indexOf(mask)) };
 }
 
 function WaitingForFriends({ title }: { title: string }) {

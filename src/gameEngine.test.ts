@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   applySharedGameAction,
+  bridgeTileMask,
+  createMarketRow,
   createLanternEvents,
   createSharedGame,
   dropDisc,
@@ -9,10 +11,15 @@ import {
   melodyTap,
   nextTriviaQuestion,
   reflexTap,
+  reversiFlips,
+  reversiScores,
+  reversiValidMoves,
+  scoreMarketInventory,
   settleLanternTime,
+  validBridgePlacements,
   validateWord,
 } from './gameEngine';
-import type { Drop4GameState, HotTakesGameState, LanternGameState, WordBombGameState } from './types';
+import type { BridgeGameState, Drop4GameState, HotTakesGameState, LanternGameState, MarketGameState, ReversiGameState, WordBombGameState } from './types';
 
 describe('Drop 4', () => {
   it('drops into the lowest open cell, rejects a full column, and finds wins', () => {
@@ -124,5 +131,90 @@ describe('solo game transitions', () => {
   it('distinguishes an early reflex tap from a measured result', () => {
     expect(reflexTap('wait', 0, 100).message).toContain('Too soon');
     expect(reflexTap('go', 100, 287).message).toContain('187 ms');
+  });
+});
+
+describe('Mossy Reversi', () => {
+  it('exposes legal opening moves, flips trapped discs, and rejects invalid turns', () => {
+    const state = createSharedGame('reversi', ['a', 'b', 'watcher'], 100) as ReversiGameState;
+    expect(state.playerIds).toEqual(['a', 'b']);
+    const moves = reversiValidMoves(state.board, 0);
+    expect(moves).toEqual([20, 29, 34, 43]);
+    expect(applySharedGameAction(state, { type: 'place-reversi', index: moves[0] }, 'b', 101)).toBe(state);
+    const played = applySharedGameAction(state, { type: 'place-reversi', index: moves[0] }, 'a', 102) as ReversiGameState;
+    expect(reversiScores(played.board)).toEqual([4, 1]);
+    expect(played.turnIndex).toBe(1);
+    expect(applySharedGameAction(played, { type: 'place-reversi', index: 0 }, 'b', 103)).toBe(played);
+  });
+
+  it('flips in every direction and reaches a deterministic result with forced passes', () => {
+    const board = Array(64).fill(-1) as ReversiGameState['board'];
+    [18, 19, 20, 26, 28, 34, 35, 36].forEach((index) => { board[index] = 1; });
+    [9, 11, 13, 25, 29, 41, 43, 45].forEach((index) => { board[index] = 0; });
+    expect(reversiFlips(board, 27, 0)).toHaveLength(8);
+
+    let state = createSharedGame('reversi', ['a', 'b'], 200) as ReversiGameState;
+    let moves = 0;
+    while (state.phase === 'playing' && moves < 64) {
+      const index = reversiValidMoves(state.board, state.turnIndex)[0];
+      state = applySharedGameAction(state, { type: 'place-reversi', index }, state.playerIds[state.turnIndex], 201 + moves) as ReversiGameState;
+      moves += 1;
+    }
+    expect(['finished', 'draw']).toContain(state.phase);
+    expect(moves).toBeLessThanOrEqual(60);
+  });
+});
+
+describe('Bridge Builders', () => {
+  it('requires a reciprocal connected route and awards the completing placement', () => {
+    let state = createSharedGame('bridges', ['a', 'b'], 100) as BridgeGameState;
+    const straight = bridgeTileMask(0, 0);
+    expect(validBridgePlacements(state.board, straight)).toEqual([22]);
+    expect(applySharedGameAction(state, { type: 'place-bridge', index: 30, tile: 0, rotation: 0 }, 'a', 101)).toBe(state);
+    for (const [step, index] of [22, 23, 24, 25, 26].entries()) {
+      const actor = step % 2 === 0 ? 'a' : 'b';
+      state = applySharedGameAction(state, { type: 'place-bridge', index, tile: 0, rotation: 0 }, actor, 102 + step) as BridgeGameState;
+    }
+    expect(state.phase).toBe('finished');
+    expect(state.winnerId).toBe('a');
+  });
+
+  it('seats up to four builders and rejects a tile facing away from the route', () => {
+    const state = createSharedGame('bridges', ['a', 'b', 'c', 'd', 'watcher'], 200) as BridgeGameState;
+    expect(state.playerIds).toEqual(['a', 'b', 'c', 'd']);
+    expect(validBridgePlacements(state.board, bridgeTileMask(0, 1))).toEqual([]);
+    const played = applySharedGameAction(state, { type: 'place-bridge', index: 22, tile: 0, rotation: 0 }, 'a', 201) as BridgeGameState;
+    expect(played.turnIndex).toBe(1);
+  });
+});
+
+describe('Cozy Market', () => {
+  it('drafts one item per player for three rounds and scores deterministic sets', () => {
+    let state = createSharedGame('market', ['a', 'b'], 100) as MarketGameState;
+    expect(state.available).toEqual(createMarketRow(state.seed, 1));
+    const wrongTurn = applySharedGameAction(state, { type: 'pick-market', slot: 0 }, 'b', 101);
+    expect(wrongTurn).toBe(state);
+    for (let round = 1; round <= 3; round += 1) {
+      state = applySharedGameAction(state, { type: 'pick-market', slot: 0 }, 'a', 110 + round) as MarketGameState;
+      const duplicate = applySharedGameAction(state, { type: 'pick-market', slot: 99 }, 'b', 120 + round);
+      expect(duplicate).toBe(state);
+      state = applySharedGameAction(state, { type: 'pick-market', slot: 0 }, 'b', 130 + round) as MarketGameState;
+    }
+    expect(state.phase).toBe('finished');
+    expect(state.inventories.a).toHaveLength(3);
+    expect(Object.values(state.scores)).toHaveLength(2);
+    expect(scoreMarketInventory([1, 1, 1])).toBe(9);
+    expect(scoreMarketInventory([0, 1, 2])).toBe(5);
+    expect(scoreMarketInventory([3, 3, 4])).toBe(4);
+  });
+
+  it('waits for every seated shopper before refilling a four-player market', () => {
+    let state = createSharedGame('market', ['a', 'b', 'c', 'd'], 300) as MarketGameState;
+    for (const id of ['a', 'b', 'c']) state = applySharedGameAction(state, { type: 'pick-market', slot: 0 }, id, 301) as MarketGameState;
+    expect(state.round).toBe(1);
+    expect(state.available).toHaveLength(2);
+    state = applySharedGameAction(state, { type: 'pick-market', slot: 0 }, 'd', 302) as MarketGameState;
+    expect(state.round).toBe(2);
+    expect(state.available).toHaveLength(5);
   });
 });
