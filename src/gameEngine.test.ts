@@ -17,6 +17,7 @@ import {
   mergeProfileProgress,
   moveTeaStack,
   nextTriviaQuestion,
+  normalizeSharedGame,
   partyRoundWinnerIds,
   reflexTap,
   refreshSharedGameRoster,
@@ -298,6 +299,21 @@ describe('party scoring', () => {
     expect(isSharedGameSettled(lost)).toBe(true);
     expect(isSharedGameComplete(lost)).toBe(false);
     expect(applySharedGameAction(lost, { type: 'claim-game-reward' }, 'a', 2)).toBe(lost);
+  });
+});
+
+describe('shared snapshot recovery', () => {
+  it('repairs incomplete fixed-size boards before gameplay', () => {
+    const drop = createSharedGame('drop4', ['a', 'b'], 1) as Drop4GameState;
+    const repairedDrop = normalizeSharedGame({ ...drop, board: [0] } as Drop4GameState) as Drop4GameState;
+    expect(repairedDrop.board).toHaveLength(42);
+    expect(repairedDrop.board.every((cell) => cell === -1)).toBe(true);
+    const bridge = createSharedGame('bridges', ['a', 'b'], 1) as BridgeGameState;
+    const repairedBridge = normalizeSharedGame({ ...bridge, board: [], owners: [] } as BridgeGameState) as BridgeGameState;
+    expect(repairedBridge.board).toHaveLength(49);
+    expect(repairedBridge.board[21]).toBe(2);
+    expect(repairedBridge.board[27]).toBe(8);
+    expect(repairedBridge.owners).toHaveLength(49);
   });
 });
 

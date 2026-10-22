@@ -80,18 +80,25 @@ export function createSharedGame(gameId: MultiplayerGameId, playerIds: string[],
 }
 
 export function normalizeSharedGame(state: SharedGameState): SharedGameState {
-  state = state.rewardClaims ? state : { ...state, rewardClaims: {} };
-  if (state.gameId === 'drop4') return state.board ? state : { ...state, board: Array(42).fill(-1) };
-  if (state.gameId === 'wordbomb') return state.chain ? state : { ...state, chain: [] };
-  if (state.gameId === 'hottakes') return state.votes ? state : { ...state, votes: {} };
+  state = state.rewardClaims && typeof state.rewardClaims === 'object' && !Array.isArray(state.rewardClaims) ? state : { ...state, rewardClaims: {} };
+  if (state.gameId === 'drop4') return Array.isArray(state.board) && state.board.length === 42 ? state : { ...state, board: Array(42).fill(-1) };
+  if (state.gameId === 'wordbomb') return Array.isArray(state.chain) ? state : { ...state, chain: [] };
+  if (state.gameId === 'hottakes') return state.votes && typeof state.votes === 'object' && !Array.isArray(state.votes) ? state : { ...state, votes: {} };
   if (state.gameId === 'lanterns') {
-    if (state.resolved && state.penalized && state.rewardClaims) return state;
-    return { ...state, resolved: state.resolved || [], penalized: state.penalized || [], rewardClaims: state.rewardClaims || {} };
+    if (Array.isArray(state.resolved) && Array.isArray(state.penalized)) return state;
+    return { ...state, resolved: Array.isArray(state.resolved) ? state.resolved : [], penalized: Array.isArray(state.penalized) ? state.penalized : [] };
   }
-  if (state.gameId === 'reversi') return state.board ? state : { ...state, board: createReversiBoard() };
-  if (state.gameId === 'bridges') return state.board && state.owners ? state : { ...state, board: state.board || Array(49).fill(0), owners: state.owners || Array(49).fill(-1) };
-  if (state.available && state.inventories && state.scores && state.winnerIds) return state;
-  return { ...state, available: state.available || createMarketRow(state.seed, state.round), inventories: state.inventories || {}, scores: state.scores || {}, winnerIds: state.winnerIds || [] };
+  if (state.gameId === 'reversi') return Array.isArray(state.board) && state.board.length === 64 ? state : { ...state, board: createReversiBoard() };
+  if (state.gameId === 'bridges') {
+    const board = Array.isArray(state.board) && state.board.length === 49 ? state.board : (() => { const fresh = Array(49).fill(0); fresh[21] = 2; fresh[27] = 8; return fresh; })();
+    const owners = Array.isArray(state.owners) && state.owners.length === 49 ? state.owners : Array(49).fill(-1);
+    return board === state.board && owners === state.owners ? state : { ...state, board, owners };
+  }
+  const available = Array.isArray(state.available) ? state.available : createMarketRow(state.seed, state.round);
+  const inventories = state.inventories && typeof state.inventories === 'object' && !Array.isArray(state.inventories) ? state.inventories : {};
+  const scores = state.scores && typeof state.scores === 'object' && !Array.isArray(state.scores) ? state.scores : {};
+  const winnerIds = Array.isArray(state.winnerIds) ? state.winnerIds : [];
+  return available === state.available && inventories === state.inventories && scores === state.scores && winnerIds === state.winnerIds ? state : { ...state, available, inventories, scores, winnerIds };
 }
 
 export function refreshSharedGameRoster(state: SharedGameState, playerIds: string[], now = Date.now()) {
