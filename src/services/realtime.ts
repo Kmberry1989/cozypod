@@ -1,5 +1,5 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, linkWithPopup, signInAnonymously, type Auth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInAnonymously, signInWithPopup, type Auth } from 'firebase/auth';
 import { getDatabase, onChildAdded, onDisconnect, onValue, push, ref, remove, set, update, type Database } from 'firebase/database';
 import type { ChatMessage, PartyState, PlayerProfile } from '../types';
 
@@ -126,12 +126,10 @@ class RealtimeService {
     await remove(ref(this.db, `v2/voiceSignals/${this.roomCode}/${this.uid}`)).catch(() => undefined);
   }
 
-  async linkGoogle() {
+  async signInGoogle() {
     this.app ??= initializeApp(config);
     this.auth ??= getAuth(this.app);
-    if (!this.auth.currentUser) await signInAnonymously(this.auth);
-    if (!this.auth.currentUser) throw new Error('Could not start sign-in.');
-    return linkWithPopup(this.auth.currentUser, new GoogleAuthProvider());
+    return signInWithPopup(this.auth, new GoogleAuthProvider());
   }
 
   async leave() {

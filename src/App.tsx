@@ -11,6 +11,7 @@ import { seedPlayers } from './data';
 import { levelThreshold } from './gameEngine';
 import type { ChatMessage, GameId, PartyState, PlayerProfile, View } from './types';
 import { cozyAudio } from './services/audio';
+import { googleAuthErrorMessage } from './authErrors';
 
 const starterMessages: ChatMessage[] = [
   { id: 'welcome-1', playerId: 'sunny', name: 'Sunny', text: 'this room is so cozy 💛', createdAt: Date.now() - 120000 },
@@ -122,8 +123,12 @@ function App() {
   };
 
   const googleSignIn = async () => {
-    try { await realtime.linkGoogle(); setToast('Progress is now synced with Google.'); }
-    catch (error) { setToast(error instanceof Error ? error.message : 'Google sign-in was cancelled.'); }
+    try {
+      const credential = await realtime.signInGoogle();
+      const googleName = credential.user.displayName?.trim().slice(0, 20) || me.name;
+      await enterRoom(googleName, roomCode);
+      setToast('Signed in with Google');
+    } catch (error) { setToast(googleAuthErrorMessage(error)); }
   };
 
   const toggleMusic = () => { const next = !musicOn; setMusicOn(next); cozyAudio.setMusic(next); setToast(next ? 'Rainy-day radio is playing' : 'Clubhouse mix paused'); };
