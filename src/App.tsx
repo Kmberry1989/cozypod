@@ -238,10 +238,13 @@ function App() {
   };
 
   const reward = useCallback((message: string) => {
-    setToast(message);
     const player = meRef.current;
     const updated = applyProfileReward(player, message);
-    if (updated === player) return;
+    if (updated === player) { setToast(message); return; }
+    const feedback = [message];
+    if (updated.level > player.level) feedback.push(`Level up — you reached level ${updated.level}!`);
+    if (updated.trophyCount > player.trophyCount) feedback.push('A new trophy reward is waiting in the Wardrobe.');
+    setToast(feedback.join(' '));
     cozyAudio.success();
     meRef.current = updated;
     setPlayers((current) => [updated, ...current.slice(1)]);

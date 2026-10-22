@@ -44,6 +44,7 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
   const rewardClaimed = Boolean(sharedGame?.rewardClaims[meId]);
   const partyGame = party.queue[party.round];
   const partyRoundComplete = !isMultiplayerGame(partyGame) || (sharedGame?.gameId === partyGame && isSharedGameSettled(sharedGame));
+  const topPartyScore = Math.max(0, ...Object.values(party.scores));
   useEffect(() => {
     shelf.current?.querySelector<HTMLElement>(`[data-game-id="${selected}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }, [selected]);
@@ -63,7 +64,7 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
       </div>
       {party.phase === 'playing' && party.queue.length > 0 && <div className="party-round-bar"><span><strong>Party round {party.round + 1} of {party.queue.length}</strong><small>{games.find((game) => game.id === partyGame)?.label}</small></span><button type="button" disabled={!partyRoundComplete} onClick={onNextPartyRound}>{!partyRoundComplete ? 'Finish round first' : party.round + 1 >= party.queue.length ? 'Finish party' : 'Next game'}</button></div>}
       <div className="active-game" style={{ '--game-accent': active.color } as CSSProperties}>
-        {party.phase === 'recap' && <div className="party-recap game-stage"><span>🏆</span><h2>Party recap</h2><p>Every round, every friend, one very cozy night.</p><div>{players.map((player) => <section key={player.id}><strong>{player.name}</strong><b>{party.scores[player.id] || 0} pts</b></section>)}</div><button className="stage-action" type="button" onClick={onFinishParty}>Back to the lounge</button></div>}
+        {party.phase === 'recap' && <div className="party-recap game-stage"><span>🏆</span><h2>Party recap</h2><p>Every round, every friend, one very cozy night.</p><div>{players.map((player) => { const score = party.scores[player.id] || 0; return <section className={topPartyScore > 0 && score === topPartyScore ? 'winner' : ''} key={player.id}><strong>{topPartyScore > 0 && score === topPartyScore ? '👑 ' : ''}{player.name}</strong><b>{score} pts</b></section>; })}</div><button className="stage-action" type="button" onClick={onFinishParty}>Back to the lounge</button></div>}
         {party.phase !== 'recap' && <>
         {selected === 'drop4' && <Drop4Stage players={players} meId={meId} game={sharedGame?.gameId === 'drop4' ? sharedGame : null} onAction={onGameAction} />}
         {selected === 'wordbomb' && <WordBombStage players={players} meId={meId} game={sharedGame?.gameId === 'wordbomb' ? sharedGame : null} onAction={onGameAction} />}
