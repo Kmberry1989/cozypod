@@ -7,3 +7,5 @@
 - **Art direction:** simple dark chocolate-clay features with soft edges and a
   tiny upper-left highlight; expressions must read clearly at 32 px.
 - **Do not include:** body color, headwear, background, text, UI, or skin patch.
+- **Unlocks:** project faces unlock at levels 2, 4, 6, and so on, in
+  alphabetical filename order. Built-in starter faces are always available.

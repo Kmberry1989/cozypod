@@ -10,3 +10,5 @@
   restrained fingerprints, warm upper-left key light, subtle lower-right shadow.
 - **Do not include:** a Podling body, face, room background, text, UI, baked drop
   shadow outside the accessory, or a colored canvas.
+- **Unlocks:** one project accessory unlocks per earned trophy, in alphabetical
+  filename order.

@@ -47,7 +47,7 @@ function App() {
   useEffect(() => { localStorage.setItem('cozypod_v2_profile', JSON.stringify(me)); }, [me]);
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(null), 3600); return () => clearTimeout(timer); }, [toast]);
   useEffect(() => {
-    const playTap = (event: PointerEvent) => { if ((event.target as HTMLElement).closest('button, label[for], .asset-drop-zone')) cozyAudio.tap(); };
+    const playTap = (event: PointerEvent) => { if ((event.target as HTMLElement).closest('button, label[for]')) cozyAudio.tap(); };
     const blockNativeGesture = (event: Event) => {
       const target = event.target as HTMLElement;
       if (!target.closest('input, textarea, [contenteditable="true"], a')) event.preventDefault();

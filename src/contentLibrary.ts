@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-
-export type ContentCategory = 'podling-bodies' | 'podling-headwear' | 'podling-hats' | 'podling-faces' | 'toys' | 'room-backgrounds' | 'game-art';
+export type ContentCategory = 'podling-bodies' | 'podling-headwear' | 'podling-hats' | 'podling-faces' | 'trophies' | 'toys' | 'room-backgrounds' | 'game-art';
 
 export interface ContentAsset {
   id: string;
   name: string;
   url: string;
   category: ContentCategory;
-  source: 'built-in' | 'project' | 'local';
+  source: 'built-in' | 'project';
 }
 
 export const categoryLabels: Record<ContentCategory, string> = {
@@ -15,6 +13,7 @@ export const categoryLabels: Record<ContentCategory, string> = {
   'podling-headwear': 'Headwear',
   'podling-hats': 'Hats / front accessories',
   'podling-faces': 'Faces / eyes',
+  trophies: 'Trophies',
   toys: 'Toys & shelf items',
   'room-backgrounds': 'Room backgrounds',
   'game-art': 'Game art',
@@ -36,50 +35,8 @@ const projectAssets: ContentAsset[] = Object.entries(discovered).flatMap(([path,
   if (!category) return [];
   const file = path.split('/').pop() || 'asset';
   const name = file.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-  return [{ id: `project:${path}`, name, url, category, source: 'project' }];
-});
-
-const DB_NAME = 'cozypod-content-library';
-const STORE = 'assets';
-
-function openDatabase() {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore(STORE, { keyPath: 'id' });
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function readLocalAssets(): Promise<ContentAsset[]> {
-  const database = await openDatabase();
-  return new Promise((resolve, reject) => {
-    const request = database.transaction(STORE, 'readonly').objectStore(STORE).getAll();
-    request.onsuccess = () => resolve((request.result as ContentAsset[]).map((asset) => ({ ...asset, category: asset.category || 'toys', source: 'local' })));
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function fileToDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-async function saveLocalAsset(file: File, category: ContentCategory): Promise<ContentAsset> {
-  if (!file.type.startsWith('image/')) throw new Error('Choose an image file.');
-  if (file.size > 5 * 1024 * 1024) throw new Error('Keep each asset under 5 MB.');
-  const asset: ContentAsset = { id: `local:${crypto.randomUUID()}`, name: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '), url: await fileToDataUrl(file), category, source: 'local' };
-  const database = await openDatabase();
-  await new Promise<void>((resolve, reject) => {
-    const request = database.transaction(STORE, 'readwrite').objectStore(STORE).put(asset);
-    request.onsuccess = () => resolve(); request.onerror = () => reject(request.error);
-  });
-  return asset;
-}
+  return [{ id: `project:${path}`, name, url, category, source: 'project' as const }];
+}).sort((a, b) => a.id.localeCompare(b.id));
 
 export function resolveLayer(value: string, category: 'body' | 'sprout' | 'face') {
   if (value.startsWith('data:') || value.includes('/')) return value;
@@ -87,15 +44,7 @@ export function resolveLayer(value: string, category: 'body' | 'sprout' | 'face'
 }
 
 export function useContentLibrary() {
-  const [localAssets, setLocalAssets] = useState<ContentAsset[]>([]);
-  const [error, setError] = useState('');
-  useEffect(() => { readLocalAssets().then(setLocalAssets).catch(() => setError('Local assets are unavailable in this browser.')); }, []);
-  const assets = useMemo(() => [...builtIns, ...projectAssets, ...localAssets], [localAssets]);
+  const assets = [...builtIns, ...projectAssets];
   const byCategory = (category: ContentCategory) => assets.filter((asset) => asset.category === category);
-  const addFiles = async (files: FileList | File[], category: ContentCategory) => {
-    setError('');
-    try { const added = await Promise.all(Array.from(files).map((file) => saveLocalAsset(file, category))); setLocalAssets((current) => [...current, ...added]); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Could not add that asset.'); }
-  };
-  return { assets, byCategory, addFiles, error };
+  return { assets, byCategory };
 }
