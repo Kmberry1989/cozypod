@@ -1,7 +1,7 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInAnonymously, signInWithPopup, type Auth } from 'firebase/auth';
-import { getDatabase, onChildAdded, onDisconnect, onValue, push, ref, remove, set, update, type Database } from 'firebase/database';
-import type { ChatMessage, PartyState, PlayerProfile } from '../types';
+import { getDatabase, onChildAdded, onDisconnect, onValue, push, ref, remove, runTransaction, set, update, type Database } from 'firebase/database';
+import type { ChatMessage, PartyState, PlayerProfile, SharedGameState } from '../types';
 
 const fallbackConfig = {
   apiKey: 'AIzaSyDJffr2GYu8Q22oZ4bvnsfL1UVFvLQU35k',
@@ -26,8 +26,10 @@ const config = {
 export interface RoomSnapshot {
   players?: Record<string, PlayerProfile>;
   messages?: Record<string, ChatMessage>;
-  party?: PartyState;
+  party?: Partial<PartyState>;
 }
+
+export interface GameTransactionResult { state: SharedGameState | null; changed: boolean; }
 
 export interface VoiceSignal {
   from: string;
@@ -43,8 +45,9 @@ class RealtimeService {
   private db: Database | null = null;
   private roomCode = '';
   private uid = '';
+  private onlineRoom = false;
 
-  async connect(roomCode: string, player: PlayerProfile, onRoom: (snapshot: RoomSnapshot) => void) {
+  async connect(roomCode: string, player: PlayerProfile, onRoom: (snapshot: RoomSnapshot, selfUid: string) => void) {
     try {
       this.app ??= initializeApp(config);
       this.auth ??= getAuth(this.app);
@@ -66,11 +69,13 @@ class RealtimeService {
       const playerRef = ref(this.db, `v2/rooms/${roomCode}/players/${this.uid}`);
       await set(playerRef, normalized);
       await onDisconnect(playerRef).remove();
-      const unsubscribe = onValue(ref(this.db, `v2/rooms/${roomCode}`), (snapshot) => onRoom((snapshot.val() || {}) as RoomSnapshot));
-      return { uid: this.uid, unsubscribe };
+      this.onlineRoom = true;
+      const unsubscribe = onValue(ref(this.db, `v2/rooms/${roomCode}`), (snapshot) => onRoom((snapshot.val() || {}) as RoomSnapshot, this.uid));
+      return { uid: this.uid, unsubscribe, online: true };
     } catch (error) {
+      this.onlineRoom = false;
       console.info('CozyPod is using local room mode.', error);
-      return { uid: player.id, unsubscribe: () => undefined };
+      return { uid: player.id, unsubscribe: () => undefined, online: false };
     }
   }
 
@@ -86,7 +91,19 @@ class RealtimeService {
 
   async updateParty(party: PartyState) {
     if (!this.db || !this.roomCode) return;
-    await update(ref(this.db, `v2/rooms/${this.roomCode}`), { party }).catch(() => undefined);
+    const metadata = { phase: party.phase, queue: party.queue, round: party.round, scores: party.scores, ...(party.selectedGame ? { selectedGame: party.selectedGame } : {}) };
+    await update(ref(this.db, `v2/rooms/${this.roomCode}/party`), metadata).catch(() => undefined);
+  }
+
+  async transactGame(updater: (current: SharedGameState | null) => SharedGameState | null): Promise<GameTransactionResult | null> {
+    if (!this.db || !this.roomCode || !this.uid || !this.onlineRoom) return null;
+    const result = await runTransaction(ref(this.db, `v2/rooms/${this.roomCode}/party/game`), (value) => {
+      const current = (value || null) as SharedGameState | null;
+      const next = updater(current);
+      return next === current ? undefined : next;
+    }).catch(() => null);
+    if (!result) return null;
+    return { state: (result.snapshot.val() || null) as SharedGameState | null, changed: result.committed };
   }
 
   voiceIdentity() {
@@ -134,6 +151,7 @@ class RealtimeService {
 
   async leave() {
     if (this.db && this.roomCode && this.uid) await remove(ref(this.db, `v2/rooms/${this.roomCode}/players/${this.uid}`)).catch(() => undefined);
+    this.onlineRoom = false;
   }
 }
 

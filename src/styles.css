@@ -129,6 +129,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .emote-strip button:first-child { display: flex; gap: 5px; align-items: center; padding: 0 10px; background: #e8c18d; color: #4c2b20; }
 .emote-strip button span { font-size: 10px; }
 .chat-list { display: grid; gap: 2px; max-height: 76px; overflow: hidden; margin: 3px 0 6px; }
+.empty-chat { align-self: center; margin: 7px 0; color: #d6bba5; font-size: 9px; font-weight: 800; text-align: center; }
 .chat-message { display: grid; grid-template-columns: 28px 1fr auto; gap: 6px; align-items: center; min-height: 23px; }
 .chat-message .podling-tiny { width: 26px; min-width: 26px; }
 .chat-message p { margin: 0; min-width: 0; font-size: 10px; line-height: 1.15; }
@@ -166,6 +167,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .party-game-picks button { min-height: 51px; border: 1px solid var(--line); border-radius: 11px; background: #fff8e8; color: var(--ink); font-size: 8px; font-weight: 900; }
 .party-game-picks span { display: block; font-size: 16px; }
 .party-drawer > .primary-button { width: 100%; }
+.party-note { margin: 0 0 8px; color: #986047; font-size: 9px; font-weight: 900; text-align: center; }
 
 /* Shared screen headings */
 .arcade-screen, .wardrobe-screen { height: 100%; overflow-y: auto; background: linear-gradient(180deg, #7c452d 0 96px, #f7e2c4 96px); }
@@ -181,8 +183,16 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .game-shelf button > span { width: 48px; height: 48px; border-radius: 16px; border: 3px solid rgba(255, 242, 220, .26); background: var(--token); display: grid; place-items: center; color: #fff8e9; font: 900 21px/1 'Baloo 2'; box-shadow: inset 0 -5px 0 rgba(65, 30, 18, .18), 0 5px 8px rgba(41, 17, 10, .2); transition: transform .15s ease; }
 .game-shelf button.active > span { border-color: #fff0ce; transform: translateY(-3px) rotate(-2deg); box-shadow: inset 0 -5px 0 rgba(65, 30, 18, .18), 0 8px 12px rgba(41, 17, 10, .35); }
 .game-shelf small { max-width: 60px; font-size: 8px; line-height: 1; }
+.game-rules { margin: 0 12px 8px; padding: 9px 11px; border: 1px solid #d6ad78; border-radius: 12px; background: #fff1d7; color: var(--ink); box-shadow: var(--shadow-small); }
+.game-rules strong { font: 800 13px/1 'Baloo 2'; }
+.game-rules p { margin: 3px 0 0; color: var(--muted); font-size: 9px; font-weight: 800; }
 .active-game { min-height: calc(100% - 163px); padding: 11px; background: #f1d8b6; }
 .game-stage { min-height: 100%; border-radius: 23px; padding: 13px; background: #fff3dc; border: 2px solid #dfbd8e; box-shadow: inset 0 -5px 0 rgba(125, 73, 42, .08), var(--shadow-small); }
+.game-waiting { min-height: 360px; display: grid; place-content: center; justify-items: center; gap: 7px; padding: 30px; color: #7a503b; text-align: center; }
+.game-waiting h2, .game-waiting p, .game-waiting small { margin: 0; }
+.game-waiting h2 { font: 800 25px/1 'Baloo 2'; }
+.game-waiting p { max-width: 280px; font-size: 12px; font-weight: 900; }
+.game-waiting small { max-width: 270px; color: var(--muted); font-size: 9px; font-weight: 800; }
 .game-title-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .game-title-row h2 { margin: 0; font: 800 22px/1 'Baloo 2'; }
 .game-title-row p { margin: 2px 0 0; color: var(--muted); font-size: 10px; font-weight: 800; }
@@ -196,6 +206,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .drop-board button span { display: block; width: 100%; height: 100%; border-radius: 50%; transform: scale(.88); }
 .drop-board button.red span { background: radial-gradient(circle at 35% 30%, #f57862, #d83f34 62%); box-shadow: 0 3px 0 #9f2f27; }
 .drop-board button.yellow span { background: radial-gradient(circle at 35% 30%, #ffe175, #edae2e 62%); box-shadow: 0 3px 0 #b3771d; }
+.drop-board.locked-board { filter: saturate(.75); }
+.drop-board.can-play button:not(:disabled):hover { filter: brightness(1.13); }
 .turn-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .turn-cards > div { display: grid; grid-template-columns: 36px 1fr 18px; align-items: center; gap: 5px; border: 2px solid transparent; border-radius: 13px; padding: 6px; background: #fff6e6; }
 .turn-cards > div.active { border-color: #d89039; box-shadow: 0 3px 0 #c28a4b; }

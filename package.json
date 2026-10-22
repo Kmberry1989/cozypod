@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:rules": "env -u HTTP_PROXY -u HTTPS_PROXY -u http_proxy -u https_proxy npx --yes firebase-tools@14.27.0 emulators:exec --only database --project demo-cozypod \"vitest run src/database.rules.test.ts\"",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@testing-library/react": "^16.1.0",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",

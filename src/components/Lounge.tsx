@@ -4,6 +4,7 @@ import { games, promptCards } from '../data';
 import type { ChatMessage, GameId, PartyState, PlayerProfile } from '../types';
 import { Podling } from './Podling';
 import { cozyAudio } from '../services/audio';
+import { isMultiplayerGame } from '../gameEngine';
 
 interface LoungeProps {
   players: PlayerProfile[];
@@ -24,18 +25,22 @@ interface LoungeProps {
   onMusic: () => void;
 }
 
-const playerPositions = [
-  { left: '13%', top: '57%' },
-  { left: '37%', top: '48%' },
-  { left: '59%', top: '51%' },
-  { left: '77%', top: '58%' },
-];
+const positionsByCount = {
+  1: [{ left: '50%', top: '55%' }],
+  2: [{ left: '30%', top: '55%' }, { left: '70%', top: '55%' }],
+  3: [{ left: '20%', top: '57%' }, { left: '50%', top: '48%' }, { left: '80%', top: '57%' }],
+  4: [{ left: '13%', top: '57%' }, { left: '37%', top: '48%' }, { left: '59%', top: '51%' }, { left: '77%', top: '58%' }],
+} as const;
 
 export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady, onVoice, onMessage, onEmote, onReady, onQueue, onStartParty, onOpenArcade, onReward, musicOn, onMusic }: LoungeProps) {
   const [draft, setDraft] = useState('');
   const [drawer, setDrawer] = useState<'toys' | 'party' | null>(null);
   const [promptIndex, setPromptIndex] = useState(0);
   const readyCount = players.filter((player) => player.ready).length;
+  const allReady = players.length > 0 && readyCount === players.length;
+  const queuedGame = party.queue[0];
+  const needsFriend = queuedGame ? isMultiplayerGame(queuedGame) && players.length < 2 : false;
+  const playerPositions = positionsByCount[players.length as keyof typeof positionsByCount] || positionsByCount[4];
   const recentMessages = useMemo(() => messages.slice(-3), [messages]);
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -51,7 +56,7 @@ export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady
         <div className="rain-layer" aria-hidden="true" />
         <button className="room-share" type="button" onClick={() => navigator.clipboard?.writeText(`${location.origin}${location.pathname}?room=${roomCode}`)}><Copy size={14} /> Invite</button>
         <button className="party-callout" type="button" onClick={() => setDrawer('party')}>
-          <UsersRound size={18} /><span><strong>{readyCount}/4 ready</strong><small>{party.queue.length ? `${party.queue.length} games queued` : 'Build a party queue'}</small></span><ChevronRight size={18} />
+          <UsersRound size={18} /><span><strong>{readyCount}/{players.length} ready · {players.length}/4 friends</strong><small>{party.queue.length ? `${party.queue.length} games queued` : 'Build a party queue'}</small></span><ChevronRight size={18} />
         </button>
         <div className="podling-stage" aria-label="Players in the room">
           {players.map((player, index) => (
@@ -79,6 +84,7 @@ export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady
           <button type="button" aria-label="More reactions" onClick={() => onReward('More reactions coming soon')}>•••</button>
         </div>
         <div className="chat-list" aria-live="polite">
+          {!recentMessages.length && <p className="empty-chat">No messages yet. Say hello to your Pod.</p>}
           {recentMessages.map((message) => (
             <div className="chat-message" key={message.id}>
               <Podling look={players.find((player) => player.id === message.playerId)?.look ?? players[0].look} size="tiny" />
@@ -114,7 +120,8 @@ export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady
           <div className="party-game-picks">
             {games.map((game) => <button key={game.id} disabled={party.queue.length >= 5} type="button" onClick={() => onQueue(game.id)}><span>{game.icon}</span>{game.label}</button>)}
           </div>
-          <button className="primary-button" disabled={!players[0].ready || party.queue.length === 0} type="button" onClick={() => { onStartParty(); setDrawer(null); onOpenArcade(); }}>Start party</button>
+          {needsFriend && <p className="party-note">This game starts when another friend joins.</p>}
+          <button className="primary-button" disabled={!allReady || party.queue.length === 0 || needsFriend} type="button" onClick={() => { onStartParty(); setDrawer(null); onOpenArcade(); }}>Start party</button>
         </aside>
       )}
     </section>
