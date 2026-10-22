@@ -1,3 +1,5 @@
+import type { PlayerProfile } from './types';
+
 export type ContentCategory = 'podling-bodies' | 'podling-headwear' | 'podling-hats' | 'podling-faces' | 'trophies' | 'toys' | 'room-backgrounds' | 'game-art';
 
 export interface ContentAsset {
@@ -47,4 +49,22 @@ export function useContentLibrary() {
   const assets = [...builtIns, ...projectAssets];
   const byCategory = (category: ContentCategory) => assets.filter((asset) => asset.category === category);
   return { assets, byCategory };
+}
+
+export function clubhouseUnlock(asset: ContentAsset, player: PlayerProfile) {
+  if (asset.name === 'Mosslight Conservatory') return { unlocked: player.level >= 5, requirement: 'Reach level 5' };
+  if (asset.name === 'Cocoa Snow Lodge') return { unlocked: player.trophyCount >= 5, requirement: 'Earn 5 trophies' };
+  if (asset.name === 'Starlight Observatory') return { unlocked: player.level >= 15, requirement: 'Reach level 15' };
+  return { unlocked: true, requirement: 'Unlocked' };
+}
+
+export function rewardUnlock(asset: ContentAsset, index: number, assets: ContentAsset[], player: PlayerProfile) {
+  if (asset.source === 'built-in') return { unlocked: true, requirement: 'Starter item' };
+  const projectIndex = assets.slice(0, index).filter((item) => item.source === 'project').length;
+  if (asset.category === 'trophies' || asset.category === 'toys' || asset.category === 'podling-hats') {
+    const needed = projectIndex + 1;
+    return { unlocked: player.trophyCount >= needed, requirement: `Earn ${needed} ${needed === 1 ? 'trophy' : 'trophies'}` };
+  }
+  const needed = asset.category === 'podling-faces' ? 2 + projectIndex * 2 : 3 + projectIndex * 3;
+  return { unlocked: player.level >= needed, requirement: `Reach level ${needed}` };
 }

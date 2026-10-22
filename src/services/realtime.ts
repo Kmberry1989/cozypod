@@ -1,6 +1,6 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth, GoogleAuthProvider, signInAnonymously, signInWithPopup, type Auth } from 'firebase/auth';
-import { getDatabase, onChildAdded, onDisconnect, onValue, push, ref, remove, runTransaction, set, update, type Database } from 'firebase/database';
+import { get, getDatabase, onChildAdded, onDisconnect, onValue, push, ref, remove, runTransaction, set, update, type Database } from 'firebase/database';
 import type { ChatMessage, PartyState, PlayerProfile, SharedGameState } from '../types';
 
 const fallbackConfig = {
@@ -66,7 +66,7 @@ class RealtimeService {
       if (!auth.currentUser) await signInAnonymously(auth);
       this.uid = auth.currentUser?.uid || player.id;
       this.roomCode = roomCode;
-      const normalized = { ...player, id: this.uid, online: true };
+      const normalized = { ...player, id: this.uid, online: true, joinedAt: Date.now() };
       const functionsBase = import.meta.env.VITE_FUNCTIONS_BASE_URL;
       if (functionsBase && auth.currentUser) {
         const token = await auth.currentUser.getIdToken();
@@ -79,6 +79,12 @@ class RealtimeService {
       }
       const playerRef = ref(db, `v2/rooms/${roomCode}/players/${this.uid}`);
       await set(playerRef, normalized);
+      const roster = Object.values((await get(ref(db, `v2/rooms/${roomCode}/players`))).val() || {}) as PlayerProfile[];
+      const seated = roster.sort((left, right) => (left.joinedAt || 0) - (right.joinedAt || 0) || left.id.localeCompare(right.id)).slice(0, 4);
+      if (!seated.some((item) => item.id === this.uid)) {
+        await remove(playerRef);
+        throw new Error('That Pod is full. Try another room code.');
+      }
       await onDisconnect(playerRef).remove();
       this.onlineRoom = true;
       const unsubscribe = onValue(ref(db, `v2/rooms/${roomCode}`), (snapshot) => onRoom((snapshot.val() || {}) as RoomSnapshot, this.uid));
@@ -86,7 +92,7 @@ class RealtimeService {
     } catch (error) {
       this.onlineRoom = false;
       console.info('CozyPod is using local room mode.', error);
-      return { uid: player.id, unsubscribe: () => undefined, online: false };
+      return { uid: player.id, unsubscribe: () => undefined, online: false, error: error instanceof Error ? error.message : 'Realtime rooms are unavailable.' };
     }
   }
 

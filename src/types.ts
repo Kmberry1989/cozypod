@@ -25,6 +25,7 @@ export interface PlayerProfile {
   trophyCount: number;
   shelfToy: string;
   roomBackground?: string;
+  joinedAt?: number;
 }
 
 export interface ChatMessage {

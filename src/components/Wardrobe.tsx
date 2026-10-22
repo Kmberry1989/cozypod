@@ -1,6 +1,6 @@
 import { Check, ChevronLeft, ChevronRight, Lock, Pencil, Shuffle } from 'lucide-react';
 import type { ContentAsset } from '../contentLibrary';
-import { useContentLibrary } from '../contentLibrary';
+import { clubhouseUnlock, rewardUnlock, useContentLibrary } from '../contentLibrary';
 import type { PlayerProfile } from '../types';
 import { Podling } from './Podling';
 
@@ -55,24 +55,6 @@ function TrophyShelf({ trophies, player }: { trophies: ContentAsset[]; player: P
 function ClubhousePicker({ player, backgrounds, onChange }: { player: PlayerProfile; backgrounds: ContentAsset[]; onChange: (next: PlayerProfile) => void }) {
   const active = player.roomBackground || backgrounds[0]?.url;
   return <div className="clubhouse-picker"><div className="clubhouse-heading"><span><strong>My clubhouse</strong><small>Your view only—friends can choose their own</small></span><small>{backgrounds.filter((asset) => clubhouseUnlock(asset, player).unlocked).length}/{backgrounds.length} unlocked</small></div><div className="clubhouse-rail">{backgrounds.map((asset) => { const rule = clubhouseUnlock(asset, player); const selected = active === asset.url; return <button key={asset.id} className={selected ? 'selected' : ''} disabled={!rule.unlocked} type="button" onClick={() => onChange({ ...player, roomBackground: asset.url })}><img src={asset.url} alt="" /><span>{asset.name}</span><small>{rule.unlocked ? (selected ? 'Equipped' : 'Unlocked') : rule.requirement}</small>{selected && <i><Check size={12} /></i>}{!rule.unlocked && <i><Lock size={12} /></i>}</button>; })}</div></div>;
-}
-
-function clubhouseUnlock(asset: ContentAsset, player: PlayerProfile) {
-  if (asset.name === 'Mosslight Conservatory') return { unlocked: player.level >= 5, requirement: 'Reach level 5' };
-  if (asset.name === 'Cocoa Snow Lodge') return { unlocked: player.trophyCount >= 5, requirement: 'Earn 5 trophies' };
-  if (asset.name === 'Starlight Observatory') return { unlocked: player.level >= 15, requirement: 'Reach level 15' };
-  return { unlocked: true, requirement: 'Unlocked' };
-}
-
-function rewardUnlock(asset: ContentAsset, index: number, assets: ContentAsset[], player: PlayerProfile) {
-  if (asset.source === 'built-in') return { unlocked: true, requirement: 'Starter item' };
-  const projectIndex = assets.slice(0, index).filter((item) => item.source === 'project').length;
-  if (asset.category === 'trophies' || asset.category === 'toys' || asset.category === 'podling-hats') {
-    const needed = projectIndex + 1;
-    return { unlocked: player.trophyCount >= needed, requirement: `Earn ${needed} ${needed === 1 ? 'trophy' : 'trophies'}` };
-  }
-  const needed = asset.category === 'podling-faces' ? 2 + projectIndex * 2 : 3 + projectIndex * 3;
-  return { unlocked: player.level >= needed, requirement: `Reach level ${needed}` };
 }
 
 function assetValue(asset: ContentAsset) { return asset.source === 'built-in' ? asset.id : asset.url; }

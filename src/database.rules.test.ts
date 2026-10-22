@@ -6,7 +6,7 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { beforeAll, beforeEach, afterAll, describe, test } from 'vitest';
-import { ref, set } from 'firebase/database';
+import { get, ref, set } from 'firebase/database';
 
 const emulatorAvailable = Boolean(process.env.FIREBASE_DATABASE_EMULATOR_HOST);
 const projectId = 'demo-cozypod';
@@ -22,6 +22,10 @@ const validGame = {
   board: Array.from({ length: 42 }, () => -1),
   turnIndex: 0,
 };
+
+const player = (id: string) => ({
+  id, name: id, look: { body: 'teal', sprout: 'leaf', face: 'happy' }, online: true,
+});
 
 describe.skipIf(!emulatorAvailable)('Realtime Database room game rules', () => {
   let environment: RulesTestEnvironment;
@@ -65,5 +69,23 @@ describe.skipIf(!emulatorAvailable)('Realtime Database room game rules', () => {
     const database = environment.authenticatedContext('alice').database();
     await assertFails(set(ref(database, `${roomPath}/party/game`), { ...validGame, gameId: 'unknown' }));
     await assertFails(set(ref(database, `${roomPath}/party/game`), { ...validGame, playerIds: [] }));
+  });
+
+  test('keeps rooms private until joining and protects each player profile', async () => {
+    const outsider = environment.authenticatedContext('eve').database();
+    await assertFails(get(ref(outsider, roomPath)));
+    await assertSucceeds(set(ref(outsider, `${roomPath}/players/eve`), player('eve')));
+    await assertSucceeds(get(ref(outsider, roomPath)));
+    const alice = environment.authenticatedContext('alice').database();
+    await assertSucceeds(set(ref(alice, `${roomPath}/players/alice`), player('alice')));
+    await assertFails(set(ref(alice, `${roomPath}/players/bob`), player('bob')));
+    await assertSucceeds(get(ref(alice, roomPath)));
+  });
+
+  test('allows room chat but rejects attempts to impersonate another player', async () => {
+    const database = environment.authenticatedContext('alice').database();
+    const message = { playerId: 'alice', name: 'Alice', text: 'Hello!', createdAt: 3 };
+    await assertSucceeds(set(ref(database, `${roomPath}/messages/one`), message));
+    await assertFails(set(ref(database, `${roomPath}/messages/two`), { ...message, playerId: 'bob' }));
   });
 });

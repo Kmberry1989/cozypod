@@ -38,6 +38,7 @@ function App() {
   const [musicOn, setMusicOn] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const sharedGameRef = useRef<SharedGameState | null>(null);
+  const roomUnsubscribeRef = useRef<() => void>(() => undefined);
 
   const me = players[0];
   const meRef = useRef(me);
@@ -60,7 +61,11 @@ function App() {
       document.removeEventListener('dragstart', blockNativeGesture);
     };
   }, []);
-  useEffect(() => () => { void voice.disconnect(); }, []);
+  useEffect(() => () => {
+    roomUnsubscribeRef.current();
+    void voice.disconnect();
+    void realtime.leave();
+  }, []);
 
   const applyRoomSnapshot = useCallback((snapshot: RoomSnapshot, selfUid: string) => {
     if (snapshot.players) {
@@ -89,7 +94,14 @@ function App() {
     setJoined(true);
     setVoiceReady(false);
     history.replaceState(null, '', `${location.pathname}?room=${code}`);
+    roomUnsubscribeRef.current();
     const connection = await realtime.connect(code, next, applyRoomSnapshot);
+    roomUnsubscribeRef.current = connection.unsubscribe;
+    if (!connection.online && connection.error?.startsWith('That Pod is full')) {
+      setJoined(false);
+      setToast(connection.error);
+      return;
+    }
     if (connection.uid !== next.id) setPlayers((current) => [{ ...current[0], id: connection.uid }, ...current.slice(1)]);
     setVoiceReady(connection.online);
     if (!connection.online) setToast('Local mode: realtime rooms need Firebase database access.');
