@@ -22,11 +22,13 @@
   --radius: 24px;
 }
 
-* { box-sizing: border-box; }
-html, body, #root { min-height: 100%; margin: 0; }
+* { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+html, body, #root { min-height: 100%; margin: 0; overscroll-behavior: none; -webkit-touch-callout: none; }
 body { min-width: 320px; min-height: 100dvh; overflow-x: hidden; }
 button, input { font: inherit; }
-button { -webkit-tap-highlight-color: transparent; }
+button, [role='button'] { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+input, textarea, [contenteditable='true'] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+img { -webkit-user-drag: none; }
 button:not(:disabled) { cursor: pointer; }
 button:focus-visible, input:focus-visible { outline: 3px solid #4f94a1; outline-offset: 2px; }
 button:disabled { cursor: not-allowed; opacity: .48; }
@@ -57,7 +59,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 /* Join */
 .join-screen { min-height: 100dvh; position: relative; overflow: hidden; display: grid; place-items: center; padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom)); background: #432317; }
-.join-scenery { position: absolute; inset: 0; background: url('/art/v2/lounge-rainy.webp') center 41% / cover no-repeat; filter: saturate(.88) brightness(.56); transform: scale(1.03); }
+.join-scenery { position: absolute; inset: 0; background: url('../art/v2/lounge-rainy.webp') center 41% / cover no-repeat; filter: saturate(.88) brightness(.56); transform: scale(1.03); }
 .join-scenery::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(38, 17, 10, .1), rgba(39, 18, 12, .52) 50%, rgba(38, 17, 11, .88)); }
 .join-content { position: relative; z-index: 1; width: min(100%, 390px); display: flex; flex-direction: column; align-items: center; text-align: center; }
 .join-logo { width: min(78vw, 305px); height: 118px; object-fit: contain; filter: drop-shadow(0 12px 18px rgba(36, 14, 7, .35)); margin-bottom: -6px; }
@@ -240,7 +242,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 
 /* Lantern Keepers */
 .lantern-stage { background: radial-gradient(circle at 50% 26%, #294b57, #182c35 70%); color: #fff4df; border-color: #4a727c; position: relative; overflow: hidden; }
-.lantern-stage::before { content: ''; position: absolute; inset: 0; background: url('/art/v2/lounge-rainy.webp') center/cover; opacity: .2; mix-blend-mode: luminosity; pointer-events: none; }
+.lantern-stage::before { content: ''; position: absolute; inset: 0; background: url('../art/v2/lounge-rainy.webp') center/cover; opacity: .2; mix-blend-mode: luminosity; pointer-events: none; }
 .lantern-stage > * { position: relative; z-index: 1; }
 .lantern-stage .game-title-row p { color: #b9d1d5; }
 .lantern-timer { width: 49px; height: 39px; display: grid; place-items: center; border-radius: 12px; background: rgba(255,255,255,.12); font-weight: 900; }
@@ -252,12 +254,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .lantern-slot.in-danger { border-color: #ffd06a; animation: shake .35s infinite alternate; background: rgba(251, 194, 76, .1); }
 .lantern-slot > i { position: absolute; top: 8px; right: 9px; width: 34px; height: 34px; border-radius: 50%; background: #eff5f1; color: #3f7885; display: grid; place-items: center; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
 .lantern-slot > small { position: absolute; bottom: 7px; left: 0; right: 0; font-weight: 900; }
-.lantern-sprite { display: block; width: 105px; height: 105px; margin: 3px auto 18px; background-image: url('/art/v2/lantern-keepers.webp'); background-size: 500% 300%; background-repeat: no-repeat; filter: drop-shadow(0 7px 7px rgba(0,0,0,.4)); }
+.lantern-sprite { display: block; width: 105px; height: 105px; margin: 3px auto 18px; background-image: url('../art/v2/lantern-keepers.webp'); background-size: 500% 300%; background-repeat: no-repeat; filter: drop-shadow(0 7px 7px rgba(0,0,0,.4)); }
 .lantern-0 .lantern-sprite { background-position: 0% 0%; }.lantern-1 .lantern-sprite { background-position: 25% 0%; }.lantern-2 .lantern-sprite { background-position: 50% 0%; }.lantern-3 .lantern-sprite { background-position: 75% 0%; }
 .lantern-0 .state-dim { background-position: 0% 50%; }.lantern-1 .state-dim { background-position: 25% 50%; }.lantern-2 .state-dim { background-position: 50% 50%; }.lantern-3 .state-dim { background-position: 75% 50%; }
 
 /* Wardrobe */
-.wardrobe-preview { min-height: 305px; position: relative; padding: 12px 42px 0; display: flex; align-items: center; justify-content: center; background: url('/art/v2/lounge-rainy.webp') center 69% / cover; overflow: hidden; }
+.wardrobe-preview { min-height: 305px; position: relative; padding: 12px 42px 0; display: flex; align-items: center; justify-content: center; background: url('../art/v2/lounge-rainy.webp') center 69% / cover; overflow: hidden; }
 .wardrobe-preview::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(83,42,26,.18)); pointer-events: none; }
 .wardrobe-preview > button { z-index: 4; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #fff2dc; color: #573728; box-shadow: var(--shadow-small); flex: none; }
 .preview-plinth { position: relative; z-index: 3; flex: 1; min-width: 0; height: 245px; display: flex; align-items: center; justify-content: center; }

@@ -1,7 +1,11 @@
 name: Deploy CozyPod
 
 on:
-  push:
+  # This repository currently has GitHub Pages' legacy branch publisher enabled.
+  # Run after it so the tested Vite artifact is always the final published site.
+  workflow_run:
+    workflows: ["pages build and deployment"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -16,6 +20,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
