@@ -69,6 +69,7 @@ describe.skipIf(!emulatorAvailable)('Realtime Database room game rules', () => {
     const database = environment.authenticatedContext('alice').database();
     await assertFails(set(ref(database, `${roomPath}/party/game`), { ...validGame, gameId: 'unknown' }));
     await assertFails(set(ref(database, `${roomPath}/party/game`), { ...validGame, playerIds: [] }));
+    await assertFails(set(ref(database, `${roomPath}/party/game`), { ...validGame, phase: 'cheating' }));
   });
 
   test('keeps rooms private until joining and protects each player profile', async () => {
@@ -87,5 +88,7 @@ describe.skipIf(!emulatorAvailable)('Realtime Database room game rules', () => {
     const message = { playerId: 'alice', name: 'Alice', text: 'Hello!', createdAt: 3 };
     await assertSucceeds(set(ref(database, `${roomPath}/messages/one`), message));
     await assertFails(set(ref(database, `${roomPath}/messages/two`), { ...message, playerId: 'bob' }));
+    await assertFails(set(ref(database, `${roomPath}/messages/three`), { ...message, name: 'Bob' }));
+    await assertFails(set(ref(database, `${roomPath}/messages/four`), { ...message, createdAt: 'tomorrow' }));
   });
 });

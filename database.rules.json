@@ -9,19 +9,19 @@
           "players": {
             "$uid": {
               ".write": "auth != null && auth.uid === $uid",
-              ".validate": "!newData.exists() || (newData.hasChildren(['id','name','look','online']) && newData.child('id').val() === auth.uid && newData.child('name').isString() && newData.child('name').val().length <= 20)"
+              ".validate": "!newData.exists() || (newData.hasChildren(['id','name','look','online']) && newData.child('id').val() === auth.uid && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 20 && newData.child('online').isBoolean())"
             }
           },
           "messages": {
             "$message": {
               ".write": "auth != null && root.child('v2/rooms').child($room).child('players').child(auth.uid).exists()",
-              ".validate": "newData.hasChildren(['playerId','name','text','createdAt']) && newData.child('playerId').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length <= 160"
+              ".validate": "newData.hasChildren(['playerId','name','text','createdAt']) && newData.child('playerId').val() === auth.uid && newData.child('name').val() === root.child('v2/rooms').child($room).child('players').child(auth.uid).child('name').val() && newData.child('text').isString() && newData.child('text').val().length > 0 && newData.child('text').val().length <= 160 && newData.child('createdAt').isNumber()"
             }
           },
           "party": {
             ".write": "auth != null && root.child('v2/rooms').child($room).child('players').child(auth.uid).exists()",
             "game": {
-              ".validate": "!newData.exists() || (newData.hasChildren(['sessionId','gameId','phase','playerIds','createdAt','updatedAt']) && newData.child('sessionId').isString() && newData.child('sessionId').val().length <= 180 && (newData.child('gameId').val() === 'drop4' || newData.child('gameId').val() === 'wordbomb' || newData.child('gameId').val() === 'hottakes' || newData.child('gameId').val() === 'lanterns' || newData.child('gameId').val() === 'reversi' || newData.child('gameId').val() === 'bridges' || newData.child('gameId').val() === 'market') && newData.child('playerIds').child('0').isString() && !newData.child('playerIds').child('4').exists() && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber())"
+              ".validate": "!newData.exists() || (newData.hasChildren(['sessionId','gameId','phase','playerIds','createdAt','updatedAt']) && newData.child('sessionId').isString() && newData.child('sessionId').val().length <= 180 && (newData.child('gameId').val() === 'drop4' || newData.child('gameId').val() === 'wordbomb' || newData.child('gameId').val() === 'hottakes' || newData.child('gameId').val() === 'lanterns' || newData.child('gameId').val() === 'reversi' || newData.child('gameId').val() === 'bridges' || newData.child('gameId').val() === 'market') && (newData.child('phase').val() === 'waiting' || newData.child('phase').val() === 'ready' || newData.child('phase').val() === 'playing' || newData.child('phase').val() === 'finished' || newData.child('phase').val() === 'draw' || newData.child('phase').val() === 'lost') && newData.child('playerIds').child('0').isString() && !newData.child('playerIds').child('4').exists() && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber())"
             }
           }
         }
