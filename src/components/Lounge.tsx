@@ -129,7 +129,7 @@ export function Lounge({ players, roomCode, messages, party, voiceOn, voiceReady
             {party.queue.length === 0 ? <p>Pick a few games for the night.</p> : party.queue.map((id, index) => <span key={`${id}-${index}`}>{games.find((game) => game.id === id)?.icon} {games.find((game) => game.id === id)?.label}<button type="button" aria-label={`Remove ${games.find((game) => game.id === id)?.label}`} onClick={() => onRemoveQueue(index)}>×</button></span>)}
           </div>
           <div className="party-game-picks">
-            {games.map((game) => <button key={game.id} disabled={party.queue.length >= 5} type="button" onClick={() => onQueue(game.id)}><span>{game.icon}</span>{game.label}</button>)}
+            {games.map((game) => <button key={game.id} disabled={party.queue.length >= 5} type="button" onClick={() => onQueue(game.id)}><span>{game.icon}</span>{game.label}<small>{game.players}</small></button>)}
           </div>
           {needsFriend && <p className="party-note">This game starts when another friend joins.</p>}
           <button className="primary-button" disabled={!allReady || party.queue.length === 0 || needsFriend} type="button" onClick={() => { onStartParty(); setDrawer(null); onOpenArcade(); }}>Start party</button>

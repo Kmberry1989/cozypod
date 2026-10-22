@@ -340,7 +340,7 @@ function bridgeVisual(mask: number) {
 }
 
 function WaitingForFriends({ title }: { title: string }) {
-  return <div className="game-stage game-waiting"><Sparkles size={34} /><h2>{title}</h2><p>Waiting for another real player to join this Pod.</p><small>Solo games like Trivia, Melody, and Reflex are ready now.</small></div>;
+  return <div className="game-stage game-waiting"><Sparkles size={34} /><h2>{title}</h2><p>Waiting for another real player to join this Pod.</p><small>Solo games stay ready while you wait.</small></div>;
 }
 
 function playerName(players: PlayerProfile[], id: string) {

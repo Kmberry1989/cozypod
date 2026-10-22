@@ -42,6 +42,7 @@ export interface GameMeta {
   icon: string;
   color: string;
   description: string;
+  players: 'Solo' | '2 players' | '2–4 players';
   cooperative?: boolean;
 }
 

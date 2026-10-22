@@ -1,19 +1,19 @@
 import type { GameMeta, PlayerProfile, TriviaQuestion } from './types';
 
 export const games: GameMeta[] = [
-  { id: 'drop4', label: 'Drop 4', icon: '🔴', color: '#df473b', description: 'Line up four before your friends do.' },
-  { id: 'wordbomb', label: 'Word Bomb', icon: '💣', color: '#28242a', description: 'Think fast. Keep the word chain alive.' },
-  { id: 'trivia', label: 'Trivia', icon: '?', color: '#87a66a', description: 'Buzz in for a cozy brain battle.' },
-  { id: 'melody', label: 'Melody', icon: '♪', color: '#9b7cca', description: 'Repeat the tune, one note at a time.' },
-  { id: 'reflex', label: 'Reflex', icon: '⚡', color: '#e7a62e', description: 'Wait for the glow. Then tap!' },
-  { id: 'pairs', label: 'Firefly Pairs', icon: '✨', color: '#8067b7', description: 'Turn over keepsakes and find every pair.' },
-  { id: 'garden', label: 'Glow Garden', icon: '🌼', color: '#4f8e68', description: 'Wake every moonflower with clever taps.' },
-  { id: 'teastack', label: 'Tea Stack', icon: '🫖', color: '#ba704d', description: 'Move the tiny tea set without a spill.' },
-  { id: 'hottakes', label: 'Hot Takes', icon: '🔥', color: '#e96746', description: 'Vote, reveal, and defend your choice.' },
-  { id: 'lanterns', label: 'Lantern Keepers', icon: '🏮', color: '#4f94a1', description: 'Keep the clubhouse glowing together.', cooperative: true },
-  { id: 'reversi', label: 'Mossy Reversi', icon: '🍃', color: '#628753', description: 'Flip the grove and claim the most moss.' },
-  { id: 'bridges', label: 'Bridge Builders', icon: '🌉', color: '#438eaa', description: 'Place path tiles and finish the crossing.' },
-  { id: 'market', label: 'Cozy Market', icon: '🧺', color: '#c97743', description: 'Draft three treasures into the best set.' },
+  { id: 'drop4', label: 'Drop 4', icon: '🔴', color: '#df473b', description: 'Line up four before your friends do.', players: '2 players' },
+  { id: 'wordbomb', label: 'Word Bomb', icon: '💣', color: '#28242a', description: 'Think fast. Keep the word chain alive.', players: '2–4 players' },
+  { id: 'trivia', label: 'Trivia', icon: '?', color: '#87a66a', description: 'Buzz in for a cozy brain battle.', players: 'Solo' },
+  { id: 'melody', label: 'Melody', icon: '♪', color: '#9b7cca', description: 'Repeat the tune, one note at a time.', players: 'Solo' },
+  { id: 'reflex', label: 'Reflex', icon: '⚡', color: '#e7a62e', description: 'Wait for the glow. Then tap!', players: 'Solo' },
+  { id: 'pairs', label: 'Firefly Pairs', icon: '✨', color: '#8067b7', description: 'Turn over keepsakes and find every pair.', players: 'Solo' },
+  { id: 'garden', label: 'Glow Garden', icon: '🌼', color: '#4f8e68', description: 'Wake every moonflower with clever taps.', players: 'Solo' },
+  { id: 'teastack', label: 'Tea Stack', icon: '🫖', color: '#ba704d', description: 'Move the tiny tea set without a spill.', players: 'Solo' },
+  { id: 'hottakes', label: 'Hot Takes', icon: '🔥', color: '#e96746', description: 'Vote, reveal, and defend your choice.', players: '2–4 players' },
+  { id: 'lanterns', label: 'Lantern Keepers', icon: '🏮', color: '#4f94a1', description: 'Keep the clubhouse glowing together.', players: '2–4 players', cooperative: true },
+  { id: 'reversi', label: 'Mossy Reversi', icon: '🍃', color: '#628753', description: 'Flip the grove and claim the most moss.', players: '2 players' },
+  { id: 'bridges', label: 'Bridge Builders', icon: '🌉', color: '#438eaa', description: 'Place path tiles and finish the crossing.', players: '2–4 players' },
+  { id: 'market', label: 'Cozy Market', icon: '🧺', color: '#c97743', description: 'Draft three treasures into the best set.', players: '2–4 players' },
 ];
 
 export const seedPlayers: PlayerProfile[] = [
