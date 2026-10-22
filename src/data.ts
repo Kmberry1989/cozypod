@@ -24,19 +24,45 @@ export const trivia: TriviaQuestion[] = [
   { category: 'Cozy Things', question: 'Which drink is traditionally made with steamed milk and espresso?', answers: ['Lemonade', 'Latte', 'Iced tea', 'Soda'], correct: 1 },
   { category: 'Tiny Worlds', question: 'What do fireflies use their glow for?', answers: ['Keeping warm', 'Communication', 'Finding snacks', 'Navigation only'], correct: 1 },
   { category: 'Game Night', question: 'How many spaces are on a standard chessboard?', answers: ['32', '48', '64', '100'], correct: 2 },
+  { category: 'Rainy Days', question: 'What instrument measures rainfall?', answers: ['Barometer', 'Rain gauge', 'Compass', 'Thermometer'], correct: 1 },
+  { category: 'Woodland', question: 'An acorn grows into which kind of tree?', answers: ['Maple', 'Pine', 'Oak', 'Willow'], correct: 2 },
+  { category: 'Kitchen', question: 'Which ingredient makes bread dough rise?', answers: ['Yeast', 'Cocoa', 'Salt', 'Vanilla'], correct: 0 },
+  { category: 'Night Sky', question: 'Which planet is famous for its bright rings?', answers: ['Mars', 'Venus', 'Saturn', 'Mercury'], correct: 2 },
+  { category: 'Music', question: 'How many notes are in a standard major scale before it repeats?', answers: ['Five', 'Seven', 'Nine', 'Twelve'], correct: 1 },
+  { category: 'Tiny Worlds', question: 'What is a group of mushrooms sometimes called?', answers: ['A chorus', 'A troop', 'A bouquet', 'A circle only'], correct: 1 },
+  { category: 'Cozy Things', question: 'Which fiber comes from sheep?', answers: ['Linen', 'Silk', 'Wool', 'Cotton'], correct: 2 },
+  { category: 'Game Night', question: 'In a standard deck, how many suits are there?', answers: ['Three', 'Four', 'Five', 'Six'], correct: 1 },
+  { category: 'Garden', question: 'Which part of a flower usually attracts pollinators with color?', answers: ['Roots', 'Stem', 'Petals', 'Seeds'], correct: 2 },
 ];
 
 export const hotTakePrompts = [
   'Who would survive longest with only snacks and a flashlight?',
   'Which is the perfect rainy-night food?',
   'Who is most likely to become accidentally famous?',
+  'Who would discover the clubhouse’s secret passage first?',
+  'Which snack belongs in every game-night bowl?',
+  'Who would befriend a mysterious forest creature?',
+  'Which season has the strongest cozy energy?',
+  'Who would build the best blanket fort?',
+  'Which tiny superpower would be most useful?',
+  'Who is most likely to stay up until sunrise talking?',
+  'Which song should play when the Pod enters a room?',
+  'Who would win a no-recipe baking contest?',
 ];
 
-export const wordSyllables = ['ST', 'CH', 'ING', 'AR', 'ON', 'ATE'];
+export const wordSyllables = ['ST', 'CH', 'ING', 'AR', 'ON', 'ATE', 'OO', 'ER', 'LY', 'EA', 'TR', 'EN'];
 
 export const promptCards = [
   'What tiny win made your week better?',
   'Pick a soundtrack for this exact moment.',
   'If this room had a secret door, where would it go?',
   'Invent a snack that should not work—but does.',
+  'What ordinary object would make a great magical artifact?',
+  'Name a place you would revisit just for the atmosphere.',
+  'Design the perfect three-item rainy-day kit.',
+  'What harmless rule should every clubhouse have?',
+  'Give tonight’s gathering a dramatic episode title.',
+  'Which fictional world deserves a quiet little café?',
+  'What smell instantly makes a place feel like home?',
+  'Invent a holiday for something wonderfully unimportant.',
 ];
