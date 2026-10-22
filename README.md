@@ -84,6 +84,10 @@ Drop PNG, WebP, JPG, GIF, or SVG files into the matching folder under
 [`src/assets/content/`](src/assets/content/). Vite discovers them on the next
 build and the Wardrobe assigns their unlock requirement automatically.
 
+Fresh profiles begin at level 1 with starter art only. Solo completions award
+coins and XP; completed shared rounds also award trophies. Existing profiles in
+browser storage and the room database keep their earned progress.
+
 Each category has its own README with exact canvas dimensions, safe bounds,
 layering, filenames, and art direction:
 

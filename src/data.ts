@@ -17,7 +17,7 @@ export const games: GameMeta[] = [
 ];
 
 export const seedPlayers: PlayerProfile[] = [
-  { id: 'you', name: 'Maple', status: 'Feeling cozy', look: { body: 'teal', sprout: 'leaf', face: 'happy' }, level: 12, xp: 62, coins: 1240, ready: false, online: true, trophyCount: 5, shelfToy: '⭐' },
+  { id: 'you', name: 'Maple', status: 'Feeling cozy', look: { body: 'teal', sprout: 'leaf', face: 'happy' }, level: 1, xp: 0, coins: 200, ready: false, online: true, trophyCount: 0, shelfToy: '⭐' },
 ];
 
 export const trivia: TriviaQuestion[] = [
