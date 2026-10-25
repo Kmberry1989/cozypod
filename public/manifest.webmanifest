@@ -1,0 +1,20 @@
+{
+  "name": "CozyPod — Tiny Social Clubhouse",
+  "short_name": "CozyPod",
+  "description": "A cozy clubhouse for Podlings, party games, collectibles, and free peer-to-peer voice.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#29140e",
+  "theme_color": "#4a2417",
+  "categories": ["games", "social"],
+  "icons": [
+    {
+      "src": "art/brand/logo-clay.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
