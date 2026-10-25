@@ -91,4 +91,21 @@ describe.skipIf(!emulatorAvailable)('Realtime Database room game rules', () => {
     await assertFails(set(ref(database, `${roomPath}/messages/three`), { ...message, name: 'Bob' }));
     await assertFails(set(ref(database, `${roomPath}/messages/four`), { ...message, createdAt: 'tomorrow' }));
   });
+
+  test('validates party metadata and accepts the complete solo catalog', async () => {
+    const database = environment.authenticatedContext('alice').database();
+    const partyPath = `${roomPath}/party`;
+    await assertSucceeds(set(ref(database, partyPath), {
+      phase: 'playing',
+      queue: ['mosaic', 'cozycode', 'teastack'],
+      round: 1,
+      scores: { alice: 2 },
+      selectedGame: 'cozycode',
+      updatedAt: 200,
+    }));
+    await assertFails(set(ref(database, `${partyPath}/queue`), ['drop4', 'wordbomb', 'trivia', 'melody', 'reflex', 'pairs']));
+    await assertFails(set(ref(database, `${partyPath}/queue`), ['mosaic', 'not-a-game']));
+    await assertFails(set(ref(database, `${partyPath}/phase`), 'finished'));
+    await assertFails(set(ref(database, `${partyPath}/scores/intruder`), 10));
+  });
 });

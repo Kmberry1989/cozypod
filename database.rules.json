@@ -20,6 +20,29 @@
           },
           "party": {
             ".write": "auth != null && root.child('v2/rooms').child($room).child('players').child(auth.uid).exists()",
+            "phase": {
+              ".validate": "newData.isString() && (newData.val() === 'lounge' || newData.val() === 'ready' || newData.val() === 'playing' || newData.val() === 'recap')"
+            },
+            "queue": {
+              ".validate": "!newData.exists() || !newData.child('5').exists()",
+              "$index": {
+                ".validate": "($index === '0' || $index === '1' || $index === '2' || $index === '3' || $index === '4') && newData.isString() && (newData.val() === 'drop4' || newData.val() === 'wordbomb' || newData.val() === 'trivia' || newData.val() === 'melody' || newData.val() === 'reflex' || newData.val() === 'pairs' || newData.val() === 'garden' || newData.val() === 'teastack' || newData.val() === 'mosaic' || newData.val() === 'cozycode' || newData.val() === 'hottakes' || newData.val() === 'lanterns' || newData.val() === 'reversi' || newData.val() === 'bridges' || newData.val() === 'market')"
+              }
+            },
+            "round": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5"
+            },
+            "scores": {
+              "$uid": {
+                ".validate": "root.child('v2/rooms').child($room).child('players').child($uid).exists() && newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000"
+              }
+            },
+            "selectedGame": {
+              ".validate": "!newData.exists() || (newData.isString() && (newData.val() === 'drop4' || newData.val() === 'wordbomb' || newData.val() === 'trivia' || newData.val() === 'melody' || newData.val() === 'reflex' || newData.val() === 'pairs' || newData.val() === 'garden' || newData.val() === 'teastack' || newData.val() === 'mosaic' || newData.val() === 'cozycode' || newData.val() === 'hottakes' || newData.val() === 'lanterns' || newData.val() === 'reversi' || newData.val() === 'bridges' || newData.val() === 'market'))"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber()"
+            },
             "game": {
               ".validate": "!newData.exists() || (newData.hasChildren(['sessionId','gameId','phase','playerIds','createdAt','updatedAt']) && newData.child('sessionId').isString() && newData.child('sessionId').val().length <= 180 && (newData.child('gameId').val() === 'drop4' || newData.child('gameId').val() === 'wordbomb' || newData.child('gameId').val() === 'hottakes' || newData.child('gameId').val() === 'lanterns' || newData.child('gameId').val() === 'reversi' || newData.child('gameId').val() === 'bridges' || newData.child('gameId').val() === 'market') && (newData.child('phase').val() === 'waiting' || newData.child('phase').val() === 'ready' || newData.child('phase').val() === 'playing' || newData.child('phase').val() === 'finished' || newData.child('phase').val() === 'draw' || newData.child('phase').val() === 'lost') && newData.child('playerIds').child('0').isString() && !newData.child('playerIds').child('4').exists() && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber())"
             }
