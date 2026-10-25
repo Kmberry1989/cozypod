@@ -17,7 +17,8 @@ the same turn and board:
 
 Solo games remain available in a one-person room:
 
-- Trivia, Melody, Reflex, Firefly Pairs, Glow Garden, Tea Stack, and Moon Mosaic
+- Trivia, Melody, Reflex, Firefly Pairs, Glow Garden, Tea Stack, Moon Mosaic,
+  and Cozy Code
 
 Party Night queues up to five games, synchronizes the active round, prevents an
 unfinished shared round from being skipped, and shows a final room scoreboard.

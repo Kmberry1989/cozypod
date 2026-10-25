@@ -10,6 +10,7 @@ export const games: GameMeta[] = [
   { id: 'garden', label: 'Glow Garden', icon: '🌼', color: '#4f8e68', description: 'Wake every moonflower with clever taps.', players: 'Solo' },
   { id: 'teastack', label: 'Tea Stack', icon: '🫖', color: '#ba704d', description: 'Move the tiny tea set without a spill.', players: 'Solo' },
   { id: 'mosaic', label: 'Moon Mosaic', icon: '🌙', color: '#5577a6', description: 'Slide the night-sky tiles back into place.', players: 'Solo' },
+  { id: 'cozycode', label: 'Cozy Code', icon: '🔐', color: '#8e5c96', description: 'Crack the four-charm code in seven guesses.', players: 'Solo' },
   { id: 'hottakes', label: 'Hot Takes', icon: '🔥', color: '#e96746', description: 'Vote, reveal, and defend your choice.', players: '2–4 players' },
   { id: 'lanterns', label: 'Lantern Keepers', icon: '🏮', color: '#4f94a1', description: 'Keep the clubhouse glowing together.', players: '2–4 players', cooperative: true },
   { id: 'reversi', label: 'Mossy Reversi', icon: '🍃', color: '#628753', description: 'Flip the grove and claim the most moss.', players: '2 players' },

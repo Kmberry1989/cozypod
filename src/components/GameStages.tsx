@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Check, CloudRain, Flame, RotateCcw, Sparkles, Wind } from 'lucide-react';
 import { hotTakePrompts, trivia, wordSyllables } from '../data';
-import { activeLanternEvents, bridgeTileMask, createGardenPuzzle, createMosaicPuzzle, createPairsDeck, isMosaicComplete, melodyTap, mosaicMovableTiles, moveMosaic, moveTeaStack, nextTriviaQuestion, reflexTap, reversiScores, reversiValidMoves, scoreMarketInventory, toggleGarden, validBridgePlacements, validateWord, type LanternHazard } from '../gameEngine';
+import { activeLanternEvents, bridgeTileMask, createCozyCode, createGardenPuzzle, createMosaicPuzzle, createPairsDeck, isMosaicComplete, melodyTap, mosaicMovableTiles, moveMosaic, moveTeaStack, nextTriviaQuestion, reflexTap, reversiScores, reversiValidMoves, scoreCozyCode, scoreMarketInventory, toggleGarden, validBridgePlacements, validateWord, type LanternHazard } from '../gameEngine';
 import type { BridgeGameState, Drop4GameState, HotTakesGameState, LanternGameState, MarketGameState, PlayerProfile, ReversiGameState, SharedGameAction, SharedGameState, WordBombGameState } from '../types';
 import { Podling } from './Podling';
 import bridgeTiles from '../assets/content/game-art/bridge-tiles.webp';
@@ -275,6 +275,52 @@ export function MosaicStage({ onReward }: { onReward: (message: string) => void 
       : <button key={tile} type="button" disabled={complete || !movable.has(index)} onClick={() => slide(index)} aria-label={`Tile ${tile}${movable.has(index) ? ', movable' : ''}`}><small>{tile}</small><b>{mosaicTiles[tile - 1]}</b></button>)}</div>
     <p className="mosaic-tip">Finish 1–8 from left to right, leaving the last space open.</p>
     {complete && <button className="stage-action" type="button" onClick={newPuzzle}>Shuffle another mosaic</button>}
+  </div>;
+}
+
+const codeCharms = ['🌙', '⭐', '🍄', '🌿', '☕', '🏮'];
+interface CodeGuess { charms: number[]; exact: number; nearby: number; }
+
+export function CozyCodeStage({ onReward }: { onReward: (message: string) => void }) {
+  const [seed, setSeed] = useState(() => Date.now());
+  const [secret, setSecret] = useState(() => createCozyCode(seed));
+  const [current, setCurrent] = useState<number[]>([]);
+  const [guesses, setGuesses] = useState<CodeGuess[]>([]);
+  const [message, setMessage] = useState('Choose four different charms.');
+  const [best, recordBest] = useLowestScore('cozy-code');
+  const won = guesses.some((guess) => guess.exact === 4);
+  const lost = !won && guesses.length >= 7;
+  const complete = won || lost;
+  const newPuzzle = () => {
+    const nextSeed = seed + 1;
+    setSeed(nextSeed); setSecret(createCozyCode(nextSeed)); setCurrent([]); setGuesses([]); setMessage('Choose four different charms.');
+  };
+  const addCharm = (charm: number) => {
+    if (complete || current.length >= 4 || current.includes(charm)) return;
+    setCurrent([...current, charm]); setMessage('Build your four-charm guess.');
+  };
+  const submit = () => {
+    if (current.length !== 4 || complete) { setMessage('Choose four charms before checking the code.'); return; }
+    const score = scoreCozyCode(secret, current);
+    const nextGuesses = [...guesses, { charms: current, ...score }];
+    setGuesses(nextGuesses); setCurrent([]);
+    if (score.exact === 4) {
+      recordBest(nextGuesses.length); setMessage(`Code cracked in ${nextGuesses.length} ${nextGuesses.length === 1 ? 'guess' : 'guesses'}!`); onReward('Cozy Code cracked! +40 coins · +30 XP.');
+    } else if (nextGuesses.length === 7) setMessage('The lock clicked shut. The code is revealed below.');
+    else setMessage(`${score.exact} exact · ${score.nearby} nearby. Try again.`);
+  };
+  return <div className="code-stage game-stage">
+    <div className="game-title-row"><div><h2>Cozy Code</h2><p aria-live="polite">{message}</p></div><button type="button" onClick={newPuzzle} aria-label="New Cozy Code puzzle"><RotateCcw size={18} /></button></div>
+    <div className="code-score"><span><b>{guesses.length}</b> / 7 guesses</span>{best !== null && <span>Best <b>{best}</b></span>}</div>
+    <div className="code-history" aria-label="Cozy Code guesses">
+      {guesses.map((guess, index) => <div className="code-guess" key={index}><small>{index + 1}</small><span>{guess.charms.map((charm) => <b key={charm}>{codeCharms[charm]}</b>)}</span><em aria-label={`${guess.exact} exact and ${guess.nearby} nearby`}>{'●'.repeat(guess.exact)}{'○'.repeat(guess.nearby)}<i>{4 - guess.exact - guess.nearby ? '·'.repeat(4 - guess.exact - guess.nearby) : ''}</i></em></div>)}
+      {!guesses.length && <p>Gold ● = exact spot<br />White ○ = right charm, new spot</p>}
+      {lost && <div className="code-reveal"><small>Code</small><span>{secret.map((charm) => <b key={charm}>{codeCharms[charm]}</b>)}</span></div>}
+    </div>
+    {!complete && <><div className="code-current" aria-label="Current Cozy Code guess">{Array.from({ length: 4 }, (_, index) => <span className={current[index] === undefined ? 'empty' : ''} key={index}>{current[index] === undefined ? '?' : codeCharms[current[index]]}</span>)}</div>
+    <div className="code-palette" aria-label="Choose a charm">{codeCharms.map((charm, index) => <button key={charm} type="button" disabled={current.includes(index)} onClick={() => addCharm(index)} aria-label={`Add ${charm} charm`}>{charm}</button>)}</div>
+    <div className="code-actions"><button type="button" disabled={!current.length} onClick={() => setCurrent(current.slice(0, -1))}>Undo</button><button type="button" disabled={current.length !== 4} onClick={submit}>Check code</button></div></>}
+    {complete && <button className="stage-action" type="button" onClick={newPuzzle}>{won ? 'Crack another code' : 'Try a new code'}</button>}
   </div>;
 }
 

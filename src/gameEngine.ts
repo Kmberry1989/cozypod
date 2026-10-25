@@ -84,6 +84,34 @@ export function createMosaicPuzzle(seed: number) {
   return board;
 }
 
+export function createCozyCode(seed: number) {
+  let randomState = (Math.abs(Math.trunc(seed)) || 1) >>> 0;
+  const random = () => {
+    randomState = (randomState * 1664525 + 1013904223) >>> 0;
+    return randomState / 4294967296;
+  };
+  const charms = [0, 1, 2, 3, 4, 5];
+  for (let index = charms.length - 1; index > 0; index -= 1) {
+    const other = Math.floor(random() * (index + 1));
+    [charms[index], charms[other]] = [charms[other], charms[index]];
+  }
+  return charms.slice(0, 4);
+}
+
+export function scoreCozyCode(secret: number[], guess: number[]) {
+  if (secret.length !== 4 || guess.length !== 4) return { exact: 0, nearby: 0 };
+  const exact = secret.filter((value, index) => value === guess[index]).length;
+  const remainingSecret = secret.filter((value, index) => value !== guess[index]);
+  const remainingGuess = guess.filter((value, index) => value !== secret[index]);
+  const counts = remainingSecret.reduce<Record<number, number>>((result, value) => ({ ...result, [value]: (result[value] || 0) + 1 }), {});
+  const nearby = remainingGuess.reduce((total, value) => {
+    if (!counts[value]) return total;
+    counts[value] -= 1;
+    return total + 1;
+  }, 0);
+  return { exact, nearby };
+}
+
 export type LanternHazard = 'gust' | 'rain' | 'spark';
 export interface LanternEvent { id: number; lantern: number; hazard: LanternHazard; at: number; }
 

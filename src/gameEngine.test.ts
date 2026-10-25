@@ -5,6 +5,7 @@ import {
   bridgeTileMask,
   createMarketRow,
   createMosaicPuzzle,
+  createCozyCode,
   createPairsDeck,
   createGardenPuzzle,
   createLanternEvents,
@@ -29,6 +30,7 @@ import {
   reversiScores,
   reversiValidMoves,
   scoreMarketInventory,
+  scoreCozyCode,
   sharedGameWinnerIds,
   settleLanternTime,
   toggleGarden,
@@ -206,6 +208,19 @@ describe('solo game transitions', () => {
     expect(moveMosaic(solved, 0)).toBe(solved);
     expect(moveMosaic(solved, 7)).toEqual([1, 2, 3, 4, 5, 6, 7, 0, 8]);
     expect(isMosaicComplete(solved)).toBe(true);
+  });
+
+  it('creates deterministic cozy codes and scores exact and nearby charms', () => {
+    const code = createCozyCode(42);
+    expect(code).toEqual(createCozyCode(42));
+    expect(code).not.toEqual(createCozyCode(43));
+    expect(code).toHaveLength(4);
+    expect(new Set(code).size).toBe(4);
+    expect(code.every((charm) => charm >= 0 && charm < 6)).toBe(true);
+    expect(scoreCozyCode([0, 1, 2, 3], [0, 2, 1, 4])).toEqual({ exact: 1, nearby: 2 });
+    expect(scoreCozyCode([0, 1, 2, 3], [0, 1, 2, 3])).toEqual({ exact: 4, nearby: 0 });
+    expect(scoreCozyCode([0, 0, 1, 2], [0, 1, 0, 0])).toEqual({ exact: 1, nearby: 2 });
+    expect(scoreCozyCode([0], [0])).toEqual({ exact: 0, nearby: 0 });
   });
 });
 
