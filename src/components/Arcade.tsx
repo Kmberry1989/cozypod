@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { games } from '../data';
 import { isMultiplayerGame, isSharedGameComplete, isSharedGameSettled } from '../gameEngine';
 import type { GameId, PartyState, PlayerProfile, SharedGameAction, SharedGameState } from '../types';
-import { BridgeStage, Drop4Stage, GardenStage, HotTakesStage, LanternStage, MarketStage, MelodyStage, PairsStage, ReflexStage, ReversiStage, TeaStackStage, TriviaStage, WordBombStage } from './GameStages';
+import { BridgeStage, Drop4Stage, GardenStage, HotTakesStage, LanternStage, MarketStage, MelodyStage, MosaicStage, PairsStage, ReflexStage, ReversiStage, TeaStackStage, TriviaStage, WordBombStage } from './GameStages';
 
 interface ArcadeProps {
   players: PlayerProfile[];
@@ -27,6 +27,7 @@ const rules: Record<GameId, string> = {
   pairs: 'Turn over two keepsakes at a time. Matching pairs stay revealed. Find all eight pairs in as few moves as you can.',
   garden: 'Tap a garden plot to wake or rest it and its four neighbors. Make all twenty-five moonflowers glow at once.',
   teastack: 'Move the three cups from the left tray to the right. Move one top cup at a time, and never place a larger cup on a smaller one.',
+  mosaic: 'Slide a tile next to the empty space. Restore the moonlit scene in number order, with the empty space at the bottom right.',
   hottakes: 'Every player votes once. Results appear after everyone has locked a vote.',
   lanterns: 'Work together for sixty seconds. Tap a threatened lantern before its hazard lands.',
   reversi: 'Two players place discs to trap and flip straight lines. If you have no legal move, your turn is skipped. Most discs wins.',
@@ -75,6 +76,7 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
         {selected === 'pairs' && <PairsStage onReward={onReward} />}
         {selected === 'garden' && <GardenStage onReward={onReward} />}
         {selected === 'teastack' && <TeaStackStage onReward={onReward} />}
+        {selected === 'mosaic' && <MosaicStage onReward={onReward} />}
         {selected === 'hottakes' && <HotTakesStage players={players} meId={meId} game={sharedGame?.gameId === 'hottakes' ? sharedGame : null} onAction={onGameAction} />}
         {selected === 'lanterns' && <LanternStage players={players} meId={meId} game={sharedGame?.gameId === 'lanterns' ? sharedGame : null} onAction={onGameAction} />}
         {selected === 'reversi' && <ReversiStage players={players} meId={meId} game={sharedGame?.gameId === 'reversi' ? sharedGame : null} onAction={onGameAction} />}

@@ -4,6 +4,7 @@ import {
   applyProfileReward,
   bridgeTileMask,
   createMarketRow,
+  createMosaicPuzzle,
   createPairsDeck,
   createGardenPuzzle,
   createLanternEvents,
@@ -13,8 +14,11 @@ import {
   isDrop4Draw,
   isSharedGameComplete,
   isSharedGameSettled,
+  isMosaicComplete,
   melodyTap,
   mergeProfileProgress,
+  mosaicMovableTiles,
+  moveMosaic,
   moveTeaStack,
   nextTriviaQuestion,
   normalizeSharedGame,
@@ -189,6 +193,19 @@ describe('solo game transitions', () => {
     expect(moveTeaStack(start, 1, 2)).toBe(start);
     const solved = [[0, 2], [0, 1], [2, 1], [0, 2], [1, 0], [1, 2], [0, 2]].reduce((pegs, [from, to]) => moveTeaStack(pegs, from, to), start);
     expect(solved).toEqual([[], [], [3, 2, 1]]);
+  });
+
+  it('creates deterministic solvable moon mosaics and only slides adjacent tiles', () => {
+    const puzzle = createMosaicPuzzle(42);
+    expect(puzzle).toEqual(createMosaicPuzzle(42));
+    expect(puzzle).not.toEqual(createMosaicPuzzle(43));
+    expect([...puzzle].sort()).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(isMosaicComplete(puzzle)).toBe(false);
+    const solved = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+    expect(mosaicMovableTiles(solved)).toEqual([5, 7]);
+    expect(moveMosaic(solved, 0)).toBe(solved);
+    expect(moveMosaic(solved, 7)).toEqual([1, 2, 3, 4, 5, 6, 7, 0, 8]);
+    expect(isMosaicComplete(solved)).toBe(true);
   });
 });
 

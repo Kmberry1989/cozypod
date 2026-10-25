@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Check, CloudRain, Flame, RotateCcw, Sparkles, Wind } from 'lucide-react';
 import { hotTakePrompts, trivia, wordSyllables } from '../data';
-import { activeLanternEvents, bridgeTileMask, createGardenPuzzle, createPairsDeck, melodyTap, moveTeaStack, nextTriviaQuestion, reflexTap, reversiScores, reversiValidMoves, scoreMarketInventory, toggleGarden, validBridgePlacements, validateWord, type LanternHazard } from '../gameEngine';
+import { activeLanternEvents, bridgeTileMask, createGardenPuzzle, createMosaicPuzzle, createPairsDeck, isMosaicComplete, melodyTap, mosaicMovableTiles, moveMosaic, moveTeaStack, nextTriviaQuestion, reflexTap, reversiScores, reversiValidMoves, scoreMarketInventory, toggleGarden, validBridgePlacements, validateWord, type LanternHazard } from '../gameEngine';
 import type { BridgeGameState, Drop4GameState, HotTakesGameState, LanternGameState, MarketGameState, PlayerProfile, ReversiGameState, SharedGameAction, SharedGameState, WordBombGameState } from '../types';
 import { Podling } from './Podling';
 import bridgeTiles from '../assets/content/game-art/bridge-tiles.webp';
@@ -242,6 +242,39 @@ export function TeaStackStage({ onReward }: { onReward: (message: string) => voi
     <div className="tea-table" aria-label="Tea Stack trays">{pegs.map((cups, peg) => <button key={peg} type="button" disabled={complete} className={selected === peg ? 'selected' : ''} onClick={() => choose(peg)} aria-label={`Tray ${peg + 1}, ${cups.length} cups`}><span className="tea-window">{peg === 2 ? '☾' : ''}</span><i className="tea-post" />{[...cups].reverse().map((cup) => <span key={cup} className={`tea-cup cup-${cup}`}><b>{cup === 1 ? '·' : cup === 2 ? '⁙' : '✦'}</b></span>)}<em>{peg === 0 ? 'Start' : peg === 2 ? 'Window' : 'Table'}</em></button>)}</div>
     <p className="tea-tip">Tap a tray to lift its top cup, then tap a destination.</p>
     {complete && <button className="stage-action" type="button" onClick={reset}>Stack another tea set</button>}
+  </div>;
+}
+
+const mosaicTiles = ['🌙', '⭐', '☁', '✨', '🏮', '🍄', '🌿', '☕'];
+
+export function MosaicStage({ onReward }: { onReward: (message: string) => void }) {
+  const [seed, setSeed] = useState(() => Date.now());
+  const [board, setBoard] = useState(() => createMosaicPuzzle(seed));
+  const [moves, setMoves] = useState(0);
+  const [complete, setComplete] = useState(false);
+  const [best, recordBest] = useLowestScore('mosaic');
+  const newPuzzle = () => {
+    const nextSeed = seed + 1;
+    setSeed(nextSeed); setBoard(createMosaicPuzzle(nextSeed)); setMoves(0); setComplete(false);
+  };
+  const slide = (index: number) => {
+    if (complete) return;
+    const next = moveMosaic(board, index);
+    if (next === board) return;
+    const nextMoves = moves + 1;
+    const won = isMosaicComplete(next);
+    setBoard(next); setMoves(nextMoves); setComplete(won);
+    if (won) { recordBest(nextMoves); onReward('Moon Mosaic complete! +40 coins · +30 XP.'); }
+  };
+  const movable = new Set(mosaicMovableTiles(board));
+  return <div className="mosaic-stage game-stage">
+    <div className="game-title-row"><div><h2>Moon Mosaic</h2><p>{complete ? `The moonlit scene is whole after ${moves} slides!` : 'Slide the numbered keepsakes into order.'}</p></div><button type="button" onClick={newPuzzle} aria-label="New Moon Mosaic puzzle"><RotateCcw size={18} /></button></div>
+    <div className="mosaic-score"><span><b>{moves}</b> slides</span>{best !== null && <span>Best <b>{best}</b></span>}</div>
+    <div className="mosaic-board" aria-label="Moon Mosaic board">{board.map((tile, index) => tile === 0
+      ? <span className="mosaic-empty" key="empty" aria-label="Empty mosaic space" />
+      : <button key={tile} type="button" disabled={complete || !movable.has(index)} onClick={() => slide(index)} aria-label={`Tile ${tile}${movable.has(index) ? ', movable' : ''}`}><small>{tile}</small><b>{mosaicTiles[tile - 1]}</b></button>)}</div>
+    <p className="mosaic-tip">Finish 1–8 from left to right, leaving the last space open.</p>
+    {complete && <button className="stage-action" type="button" onClick={newPuzzle}>Shuffle another mosaic</button>}
   </div>;
 }
 

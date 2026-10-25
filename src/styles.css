@@ -298,6 +298,16 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .tea-window { position: absolute; top: 5px; width: 58px; height: 58px; display: grid; place-items: center; border: 5px solid #794b31; border-radius: 50%; color: #ffe694; background: radial-gradient(circle at 65% 35%, #5b7592, #24334d 72%); font-size: 28px; box-shadow: inset 0 0 0 3px #c98a55; }.tea-table button:not(:last-child) .tea-window { opacity: 0; }
 .tea-table em { position: absolute; bottom: 4px; z-index: 3; color: #f5d8b4; font-size: 8px; font-style: normal; font-weight: 900; }
 .tea-tip { margin: 11px 0 3px; color: #e0bc98; text-align: center; font-size: 8px; font-weight: 800; }
+.mosaic-stage { color: #fff8df; border-color: #394f78; background: radial-gradient(circle at 50% 12%, #617da8, #273a63 78%); }
+.mosaic-stage .game-title-row p { color: #cfdbed; }.mosaic-stage .game-title-row button { color: #fff4d0; background: rgba(255,255,255,.12); }
+.mosaic-score { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin: 12px 0; }.mosaic-score span { padding: 6px 10px; border-radius: 10px; color: #d7e3f2; background: rgba(25,39,74,.48); font-size: 8px; font-weight: 900; }.mosaic-score b { color: #fff0a8; font-size: 11px; }
+.mosaic-board { width: min(100%, 390px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 0 auto; padding: 10px; border: 6px solid #8a5b3d; border-radius: 22px; background: radial-gradient(circle at 70% 20%, #263f66, #172847 72%); box-shadow: inset 0 0 0 2px #bc8052, 0 8px 0 #35271f, 0 15px 25px rgba(15,24,45,.38); }
+.mosaic-board button, .mosaic-empty { position: relative; min-width: 0; border-radius: 16px; }
+.mosaic-board button { display: grid; place-items: center; border: 3px solid #e8c97a; color: #fff5c9; background: linear-gradient(145deg, #6f8db4, #455f8a); box-shadow: inset 0 -8px 0 rgba(25,42,75,.22), 0 5px 0 #1b2948; transition: transform .14s ease, filter .14s ease; }
+.mosaic-board button:not(:disabled):hover { transform: translateY(-2px); filter: brightness(1.12); }.mosaic-board button:not(:disabled):active { transform: translateY(3px); }.mosaic-board button:disabled { opacity: .88; }
+.mosaic-board button small { position: absolute; top: 6px; left: 8px; color: #f6dfa1; font-size: 8px; font-weight: 900; }.mosaic-board button b { font-size: clamp(25px, 10vw, 48px); filter: drop-shadow(0 4px 2px rgba(18,27,52,.25)); }
+.mosaic-empty { border: 2px dashed rgba(211,226,244,.2); background: radial-gradient(circle, rgba(190,216,241,.08), transparent 68%); }
+.mosaic-tip { margin: 11px 0 3px; color: #bccce3; text-align: center; font-size: 8px; font-weight: 800; }
 .takes-stage > h3 { min-height: 68px; margin: 12px 0; padding: 13px; border-radius: 15px; background: #8b5c48; color: #fff5e6; font: 800 17px/1.2 'Baloo 2'; display: grid; place-items: center; text-align: center; }
 .candidate-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; margin-bottom: 10px; }
 .candidate-grid button { border: 2px solid #e4c497; border-radius: 14px; background: #fff8e8; padding: 7px; display: grid; grid-template-columns: auto 1fr; align-items: center; color: var(--ink); text-align: left; }

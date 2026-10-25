@@ -41,6 +41,49 @@ export function isDrop4Draw(board: DropCell[]) {
   return board.length === 42 && board.every((cell) => cell !== -1) && getDrop4Winner(board) === null;
 }
 
+const solvedMosaic = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+
+export function mosaicMovableTiles(board: number[]) {
+  if (board.length !== 9 || !board.includes(0)) return [];
+  const blank = board.indexOf(0);
+  const row = Math.floor(blank / 3);
+  const column = blank % 3;
+  return [[row - 1, column], [row + 1, column], [row, column - 1], [row, column + 1]]
+    .filter(([nextRow, nextColumn]) => nextRow >= 0 && nextRow < 3 && nextColumn >= 0 && nextColumn < 3)
+    .map(([nextRow, nextColumn]) => nextRow * 3 + nextColumn);
+}
+
+export function moveMosaic(board: number[], index: number) {
+  if (!Number.isInteger(index) || !mosaicMovableTiles(board).includes(index)) return board;
+  const next = [...board];
+  const blank = next.indexOf(0);
+  [next[blank], next[index]] = [next[index], next[blank]];
+  return next;
+}
+
+export function isMosaicComplete(board: number[]) {
+  return board.length === solvedMosaic.length && board.every((tile, index) => tile === solvedMosaic[index]);
+}
+
+export function createMosaicPuzzle(seed: number) {
+  let randomState = (Math.abs(Math.trunc(seed)) || 1) >>> 0;
+  const random = () => {
+    randomState = (randomState * 1664525 + 1013904223) >>> 0;
+    return randomState / 4294967296;
+  };
+  let board = [...solvedMosaic];
+  let previousBlank = -1;
+  for (let step = 0; step < 42; step += 1) {
+    const blank = board.indexOf(0);
+    const choices = mosaicMovableTiles(board).filter((index) => index !== previousBlank);
+    const next = choices[Math.floor(random() * choices.length)];
+    previousBlank = blank;
+    board = moveMosaic(board, next);
+  }
+  if (isMosaicComplete(board)) board = moveMosaic(board, mosaicMovableTiles(board)[0]);
+  return board;
+}
+
 export type LanternHazard = 'gust' | 'rain' | 'spark';
 export interface LanternEvent { id: number; lantern: number; hazard: LanternHazard; at: number; }
 
