@@ -120,11 +120,12 @@ export function ReflexStage() {
   const [phase, setPhase] = useState<'idle' | 'wait' | 'go' | 'result'>('idle');
   const [started, setStarted] = useState(0);
   const [result, setResult] = useState('');
+  const [best, recordBest] = useLowestScore('reflex');
   const timer = useRef<number | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   const start = () => { if (timer.current) clearTimeout(timer.current); setPhase('wait'); setResult('Wait for the lantern…'); timer.current = window.setTimeout(() => { setStarted(performance.now()); setPhase('go'); setResult('NOW!'); }, 1200 + Math.random() * 1800); };
-  const tap = () => { const next = reflexTap(phase, started, performance.now()); if (phase === 'wait' && timer.current) clearTimeout(timer.current); setResult(next.message); setPhase(next.phase); };
-  return <div className="reflex-stage game-stage"><div className="game-title-row"><div><h2>Reflex</h2><p>{result || 'Ready for the signal?'}</p></div></div><button className={`reflex-button ${phase}`} type="button" onClick={phase === 'idle' || phase === 'result' ? start : tap}><span>{phase === 'go' ? 'TAP!' : phase === 'wait' ? 'Wait…' : 'Start'}</span></button></div>;
+  const tap = () => { const now = performance.now(); const next = reflexTap(phase, started, now); if (phase === 'wait' && timer.current) clearTimeout(timer.current); if (phase === 'go') recordBest(Math.round(now - started)); setResult(next.message); setPhase(next.phase); };
+  return <div className="reflex-stage game-stage"><div className="game-title-row"><div><h2>Reflex</h2><p>{result || 'Ready for the signal?'}</p></div>{best !== null && <small className="personal-best">Best {best} ms</small>}</div><button className={`reflex-button ${phase}`} type="button" onClick={phase === 'idle' || phase === 'result' ? start : tap}><span>{phase === 'go' ? 'TAP!' : phase === 'wait' ? 'Wait…' : 'Start'}</span></button></div>;
 }
 
 const pairKeepsakes = [
@@ -142,6 +143,7 @@ export function PairsStage({ onReward }: { onReward: (message: string) => void }
   const [moves, setMoves] = useState(0);
   const [locked, setLocked] = useState(false);
   const [complete, setComplete] = useState(false);
+  const [best, recordBest] = useLowestScore('pairs');
   const timer = useRef<number | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   const reset = () => {
@@ -162,6 +164,7 @@ export function PairsStage({ onReward }: { onReward: (message: string) => void }
         setMatched(nextMatched);
         if (nextMatched.length === deck.length) {
           setComplete(true);
+          recordBest(nextMoves);
           onReward('Firefly Pairs complete! +40 coins · +30 XP.');
         }
       }
@@ -171,7 +174,7 @@ export function PairsStage({ onReward }: { onReward: (message: string) => void }
   const stars = moves <= 12 ? 3 : moves <= 18 ? 2 : 1;
   return <div className="pairs-stage game-stage">
     <div className="game-title-row"><div><h2>Firefly Pairs</h2><p>{complete ? `All keepsakes found in ${moves} moves!` : 'Find the matching keepsakes.'}</p></div><button type="button" onClick={reset} aria-label="Restart Firefly Pairs"><RotateCcw size={18} /></button></div>
-    <div className="pairs-score"><span><b>{matched.length / 2}</b> / 8 pairs</span><span><b>{moves}</b> moves</span>{complete && <span aria-label={`${stars} stars`}>{'★'.repeat(stars)}{'☆'.repeat(3 - stars)}</span>}</div>
+    <div className="pairs-score"><span><b>{matched.length / 2}</b> / 8 pairs</span><span><b>{moves}</b> moves</span>{best !== null && <span>Best <b>{best}</b></span>}{complete && <span aria-label={`${stars} stars`}>{'★'.repeat(stars)}{'☆'.repeat(3 - stars)}</span>}</div>
     <div className="pairs-board" aria-label="Firefly Pairs board">{deck.map((keepsake, index) => {
       const showing = flipped.includes(index) || matched.includes(index);
       const item = pairKeepsakes[keepsake];
@@ -186,6 +189,7 @@ export function GardenStage({ onReward }: { onReward: (message: string) => void 
   const [board, setBoard] = useState(() => createGardenPuzzle(seed));
   const [moves, setMoves] = useState(0);
   const [complete, setComplete] = useState(false);
+  const [best, recordBest] = useLowestScore('garden');
   const newPuzzle = () => {
     const nextSeed = seed + 1;
     setSeed(nextSeed); setBoard(createGardenPuzzle(nextSeed)); setMoves(0); setComplete(false);
@@ -194,13 +198,14 @@ export function GardenStage({ onReward }: { onReward: (message: string) => void 
     if (complete) return;
     const next = toggleGarden(board, index);
     const won = next.every(Boolean);
-    setBoard(next); setMoves((value) => value + 1); setComplete(won);
-    if (won) onReward('Glow Garden complete! +40 coins · +30 XP.');
+    const nextMoves = moves + 1;
+    setBoard(next); setMoves(nextMoves); setComplete(won);
+    if (won) { recordBest(nextMoves); onReward('Glow Garden complete! +40 coins · +30 XP.'); }
   };
   const awake = board.filter(Boolean).length;
   return <div className="garden-stage game-stage">
     <div className="game-title-row"><div><h2>Glow Garden</h2><p>{complete ? `The whole garden is glowing after ${moves} taps!` : 'A tap changes this plot and its neighbors.'}</p></div><button type="button" onClick={newPuzzle} aria-label="New Glow Garden puzzle"><RotateCcw size={18} /></button></div>
-    <div className="garden-score"><span><b>{awake}</b> / 25 awake</span><span><b>{moves}</b> taps</span></div>
+    <div className="garden-score"><span><b>{awake}</b> / 25 awake</span><span><b>{moves}</b> taps</span>{best !== null && <span>Best <b>{best}</b></span>}</div>
     <div className="garden-board" aria-label="Glow Garden board">{board.map((lit, index) => <button key={index} type="button" disabled={complete} className={lit ? 'blooming' : 'sleeping'} onClick={() => tend(index)} aria-label={`Garden plot ${index + 1}, ${lit ? 'blooming' : 'sleeping'}`} aria-pressed={lit}><span>{lit ? '✿' : '·'}</span></button>)}</div>
     <p className="garden-tip">Tip: corner taps reach three plots; middle taps reach five.</p>
     {complete && <button className="stage-action" type="button" onClick={newPuzzle}>Plant a new puzzle</button>}
@@ -212,6 +217,7 @@ export function TeaStackStage({ onReward }: { onReward: (message: string) => voi
   const [selected, setSelected] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
   const [message, setMessage] = useState('Move the tea set to the window tray.');
+  const [best, recordBest] = useLowestScore('tea-stack');
   const complete = pegs[2].length === 3;
   const reset = () => { setPegs([[3, 2, 1], [], []]); setSelected(null); setMoves(0); setMessage('Move the tea set to the window tray.'); };
   const choose = (peg: number) => {
@@ -227,12 +233,12 @@ export function TeaStackStage({ onReward }: { onReward: (message: string) => voi
     const nextMoves = moves + 1;
     const won = next[2].length === 3;
     setPegs(next); setMoves(nextMoves);
-    if (won) { setMessage(`Perfect pour in ${nextMoves} moves!`); onReward('Tea Stack complete! +40 coins · +30 XP.'); }
+    if (won) { setMessage(`Perfect pour in ${nextMoves} moves!`); recordBest(nextMoves); onReward('Tea Stack complete! +40 coins · +30 XP.'); }
     else setMessage('Lovely. Choose the next top cup.');
   };
   return <div className="tea-stage game-stage">
     <div className="game-title-row"><div><h2>Tea Stack</h2><p>{message}</p></div><button type="button" onClick={reset} aria-label="Restart Tea Stack"><RotateCcw size={18} /></button></div>
-    <div className="tea-score"><span><b>{moves}</b> moves</span><span>Best possible: <b>7</b></span></div>
+    <div className="tea-score"><span><b>{moves}</b> moves</span><span>Best possible: <b>7</b></span>{best !== null && <span>Your best: <b>{best}</b></span>}</div>
     <div className="tea-table" aria-label="Tea Stack trays">{pegs.map((cups, peg) => <button key={peg} type="button" disabled={complete} className={selected === peg ? 'selected' : ''} onClick={() => choose(peg)} aria-label={`Tray ${peg + 1}, ${cups.length} cups`}><span className="tea-window">{peg === 2 ? '☾' : ''}</span><i className="tea-post" />{[...cups].reverse().map((cup) => <span key={cup} className={`tea-cup cup-${cup}`}><b>{cup === 1 ? '·' : cup === 2 ? '⁙' : '✦'}</b></span>)}<em>{peg === 0 ? 'Start' : peg === 2 ? 'Window' : 'Table'}</em></button>)}</div>
     <p className="tea-tip">Tap a tray to lift its top cup, then tap a destination.</p>
     {complete && <button className="stage-action" type="button" onClick={reset}>Stack another tea set</button>}
@@ -345,4 +351,18 @@ function WaitingForFriends({ title }: { title: string }) {
 
 function playerName(players: PlayerProfile[], id: string) {
   return players.find((player) => player.id === id)?.name || 'A friend';
+}
+
+function useLowestScore(game: string) {
+  const key = `cozypod_v2_best_${game}`;
+  const [best, setBest] = useState<number | null>(() => {
+    const saved = Number(localStorage.getItem(key));
+    return Number.isFinite(saved) && saved > 0 ? saved : null;
+  });
+  const record = (score: number) => {
+    if (!Number.isFinite(score) || score <= 0 || (best !== null && score >= best)) return;
+    setBest(score);
+    localStorage.setItem(key, String(score));
+  };
+  return [best, record] as const;
 }

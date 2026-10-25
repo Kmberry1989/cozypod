@@ -255,9 +255,10 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .reflex-button.wait { background: radial-gradient(circle at 42% 35%, #88746b, #4c403c 72%); }
 .reflex-button.go { background: radial-gradient(circle at 42% 35%, #9bd67f, #4e9657 72%); animation: pulse .55s infinite alternate; }
 .reflex-button span { font: 900 28px/1 'Baloo 2'; }
+.personal-best { flex: none; padding: 6px 8px; border-radius: 9px; color: #73533d; background: #ead2aa; font-size: 8px; font-weight: 900; }
 .pairs-stage { color: #fff5df; border-color: #594478; background: radial-gradient(circle at 50% 16%, #6c5792, #322b55 76%); }
 .pairs-stage .game-title-row p { color: #d6cce9; }.pairs-stage .game-title-row button { color: #fff4d7; background: rgba(255,255,255,.12); }
-.pairs-score { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 10px 0; }
+.pairs-score { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 7px; margin: 10px 0; }
 .pairs-score span { padding: 6px 9px; border-radius: 10px; color: #e9def7; background: rgba(31,23,52,.45); font-size: 8px; font-weight: 900; }
 .pairs-score span:last-child { color: #ffdc72; letter-spacing: .08em; }
 .pairs-score b { color: #fff7dd; font-size: 11px; }
@@ -273,7 +274,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .pairs-board button.showing .pair-card-back { opacity: 0; }.pairs-board button.showing .pair-card-front { opacity: 1; transform: scale(1) rotate(0); }
 .garden-stage { color: #fff6dc; border-color: #3d6b4b; background: radial-gradient(circle at 50% 14%, #477958, #1e4334 78%); overflow: hidden; }
 .garden-stage .game-title-row p { color: #c7dfc1; }.garden-stage .game-title-row button { color: #fff5d4; background: rgba(255,255,255,.12); }
-.garden-score { display: flex; justify-content: center; gap: 7px; margin: 11px 0; }
+.garden-score { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin: 11px 0; }
 .garden-score span { padding: 6px 10px; border-radius: 10px; color: #d2e8ca; background: rgba(18,51,37,.48); font-size: 8px; font-weight: 900; }.garden-score b { color: #fff6d7; font-size: 11px; }
 .garden-board { width: min(100%, 385px); aspect-ratio: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 0 auto; padding: 9px; border: 6px solid #7e5534; border-radius: 22px; background: #33281d; box-shadow: inset 0 0 0 2px #ac7a4c, 0 8px 0 #241b17, 0 15px 24px rgba(10,29,20,.35); }
 .garden-board button { position: relative; min-width: 0; padding: 0; border: 2px solid #35583c; border-radius: 13px; background: radial-gradient(circle at 50% 48%, #3c5940, #263e30 74%); box-shadow: inset 0 -5px 0 rgba(14,32,22,.22); transition: transform .16s ease, background .2s ease, box-shadow .2s ease; }
@@ -285,7 +286,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .garden-tip { margin: 10px 0 3px; color: #abc9a8; text-align: center; font-size: 8px; font-weight: 800; }
 .tea-stage { color: #fff6df; border-color: #74472f; background: radial-gradient(circle at 50% 12%, #a86643, #593523 78%); }
 .tea-stage .game-title-row p { color: #eed3b7; }.tea-stage .game-title-row button { color: #fff3d8; background: rgba(255,255,255,.12); }
-.tea-score { display: flex; justify-content: center; gap: 7px; margin: 13px 0; }.tea-score span { padding: 6px 10px; border-radius: 10px; color: #e8c8a7; background: rgba(61,34,23,.46); font-size: 8px; font-weight: 900; }.tea-score b { color: #fff4d8; font-size: 11px; }
+.tea-score { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin: 13px 0; }.tea-score span { padding: 6px 10px; border-radius: 10px; color: #e8c8a7; background: rgba(61,34,23,.46); font-size: 8px; font-weight: 900; }.tea-score b { color: #fff4d8; font-size: 11px; }
 .tea-table { position: relative; width: min(100%, 500px); min-height: 290px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 auto; padding: 18px 12px 20px; border: 6px solid #875534; border-radius: 22px; background: linear-gradient(180deg, #345d58 0 55%, #be8756 55% 59%, #765039 59%); box-shadow: inset 0 0 0 2px #b8784a, 0 8px 0 #3d291f, 0 15px 25px rgba(42,21,14,.32); overflow: hidden; }
 .tea-table::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 80% 18%, rgba(255,239,174,.18), transparent 23%), linear-gradient(120deg, transparent 65%, rgba(255,245,190,.07)); pointer-events: none; }
 .tea-table button { position: relative; z-index: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 12px 2px 28px; border: 2px solid transparent; border-radius: 15px; color: #fff0cf; background: rgba(255,255,255,.035); }
