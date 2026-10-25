@@ -86,9 +86,9 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
         {party.phase !== 'recap' && <>
         {selected === 'drop4' && <Drop4Stage players={players} meId={meId} game={sharedGame?.gameId === 'drop4' ? sharedGame : null} onAction={onGameAction} />}
         {selected === 'wordbomb' && <WordBombStage players={players} meId={meId} game={sharedGame?.gameId === 'wordbomb' ? sharedGame : null} onAction={onGameAction} />}
-        {selected === 'trivia' && <TriviaStage />}
-        {selected === 'melody' && <MelodyStage />}
-        {selected === 'reflex' && <ReflexStage />}
+        {selected === 'trivia' && <TriviaStage onReward={onReward} />}
+        {selected === 'melody' && <MelodyStage onReward={onReward} />}
+        {selected === 'reflex' && <ReflexStage onReward={onReward} />}
         {selected === 'pairs' && <PairsStage onReward={onReward} />}
         {selected === 'garden' && <GardenStage onReward={onReward} />}
         {selected === 'teastack' && <TeaStackStage onReward={onReward} />}

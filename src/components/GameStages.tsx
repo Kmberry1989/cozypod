@@ -30,17 +30,27 @@ export function Drop4Stage({ players, meId, game, onAction }: SharedStageProps<D
   );
 }
 
-export function TriviaStage() {
+export function TriviaStage({ onReward }: { onReward: (message: string) => void }) {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
+  const [roundQuestion, setRoundQuestion] = useState(0);
+  const [score, setScore] = useState(0);
+  const [complete, setComplete] = useState(false);
+  const [best, recordBest] = useHighestScore('trivia');
   const current = trivia[questionIndex];
-  const next = () => { setPicked(null); setQuestionIndex((value) => nextTriviaQuestion(value, trivia.length)); };
+  const answer = (index: number) => { setPicked(index); if (index === current.correct) setScore((value) => value + 1); };
+  const next = () => {
+    if (roundQuestion === 4) { setComplete(true); recordBest(score); onReward('Trivia round complete! +40 coins · +30 XP.'); return; }
+    setPicked(null); setRoundQuestion((value) => value + 1); setQuestionIndex((value) => nextTriviaQuestion(value, trivia.length));
+  };
+  const reset = () => { setQuestionIndex((value) => nextTriviaQuestion(value, trivia.length)); setPicked(null); setRoundQuestion(0); setScore(0); setComplete(false); };
   return (
     <div className="trivia-stage game-stage">
-      <div className="game-title-row"><div><h2>Trivia</h2><p>{current.category}</p></div><button type="button" onClick={next} aria-label="Next trivia question"><RotateCcw size={18} /></button></div>
-      <div className="trivia-question"><span>Question {questionIndex + 1}</span><h3>{current.question}</h3></div>
-      <div className="answer-list">{current.answers.map((answer, index) => <button key={answer} className={picked === index ? (index === current.correct ? 'correct' : 'wrong') : ''} disabled={picked !== null} type="button" onClick={() => setPicked(index)}><b>{String.fromCharCode(65 + index)}</b>{answer}{picked === index && index === current.correct && <Check size={18} />}</button>)}</div>
-      {picked !== null && <button className="stage-action" type="button" onClick={next}>{picked === current.correct ? 'Nice one! Next question' : 'Good try — next question'}</button>}
+      <div className="game-title-row"><div><h2>Trivia</h2><p>{complete ? 'Round complete!' : current.category}</p></div>{best !== null && <small className="personal-best">Best {best}/5</small>}</div>
+      {complete ? <div className="trivia-result"><span>{score >= 4 ? '🏆' : score >= 2 ? '⭐' : '🌱'}</span><h3>{score} out of 5</h3><p>{score === 5 ? 'A perfect cozy quiz!' : score >= 3 ? 'Your clubhouse brain is glowing.' : 'Every answer grows the next round.'}</p><button className="stage-action" type="button" onClick={reset}>Play another round</button></div> : <>
+      <div className="trivia-question"><span>Question {roundQuestion + 1} of 5 · {score} right</span><h3>{current.question}</h3></div>
+      <div className="answer-list">{current.answers.map((answerText, index) => <button key={answerText} className={picked === index ? (index === current.correct ? 'correct' : 'wrong') : ''} disabled={picked !== null} type="button" onClick={() => answer(index)}><b>{String.fromCharCode(65 + index)}</b>{answerText}{picked === index && index === current.correct && <Check size={18} />}</button>)}</div>
+      {picked !== null && <button className="stage-action" type="button" onClick={next}>{roundQuestion === 4 ? 'See round results' : picked === current.correct ? 'Nice one! Next question' : 'Good try — next question'}</button>}</>}
     </div>
   );
 }
@@ -88,12 +98,14 @@ export function WordBombStage({ players, meId, game, onAction }: SharedStageProp
 }
 
 const melodyColors = ['tomato', 'butter', 'mint', 'lilac'];
-export function MelodyStage() {
+export function MelodyStage({ onReward }: { onReward: (message: string) => void }) {
   const [sequence, setSequence] = useState<number[]>([0]);
   const [input, setInput] = useState<number[]>([]);
   const [status, setStatus] = useState('Listen, then repeat the tune.');
   const [lit, setLit] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [complete, setComplete] = useState(false);
+  const [best, recordBest] = useHighestScore('melody');
   const timers = useRef<number[]>([]);
   const clearPlayback = () => { timers.current.forEach(clearTimeout); timers.current = []; setLit(null); setPlaying(false); };
   useEffect(() => clearPlayback, []);
@@ -106,17 +118,19 @@ export function MelodyStage() {
     timers.current.push(window.setTimeout(() => setPlaying(false), notes.length * 520));
   };
   const tap = (value: number) => {
-    if (playing) return;
+    if (playing || complete) return;
     setLit(value); timers.current.push(window.setTimeout(() => setLit(null), 180));
     const result = melodyTap(sequence, input, value);
+    if (result.outcome === 'wrong') { recordBest(sequence.length - 1); setSequence(result.sequence); setInput(result.input); setStatus('Almost! Back to the first note.'); timers.current.push(window.setTimeout(() => show([0]), 500)); return; }
+    if (result.outcome === 'complete' && sequence.length >= 6) { setInput([]); setComplete(true); recordBest(sequence.length); setStatus('A six-note masterpiece!'); onReward('Melody mastered! +40 coins · +30 XP.'); return; }
     setSequence(result.sequence); setInput(result.input);
-    if (result.outcome === 'wrong') { setStatus('Almost! Back to the first note.'); timers.current.push(window.setTimeout(() => show([0]), 500)); }
     if (result.outcome === 'complete') { setStatus(`Beautiful! Sequence ${result.sequence.length}.`); timers.current.push(window.setTimeout(() => show(result.sequence), 650)); }
   };
-  return <div className="melody-stage game-stage"><div className="game-title-row"><div><h2>Melody</h2><p>{status}</p></div><button type="button" disabled={playing} onClick={() => show()}>Play</button></div><div className="melody-pads">{melodyColors.map((color, index) => <button disabled={playing} className={`${color} ${lit === index ? 'lit' : ''}`} key={color} type="button" onClick={() => tap(index)} aria-label={`Melody note ${index + 1}`}><span>♪</span></button>)}</div><strong className="sequence-score">Sequence {sequence.length}</strong></div>;
+  const reset = () => { clearPlayback(); setSequence([0]); setInput([]); setComplete(false); setStatus('Listen, then repeat the tune.'); };
+  return <div className="melody-stage game-stage"><div className="game-title-row"><div><h2>Melody</h2><p>{status}</p></div>{best !== null && <small className="personal-best">Best {best} notes</small>}</div><div className="melody-pads">{melodyColors.map((color, index) => <button disabled={playing || complete} className={`${color} ${lit === index ? 'lit' : ''}`} key={color} type="button" onClick={() => tap(index)} aria-label={`Melody note ${index + 1}`}><span>♪</span></button>)}</div><strong className="sequence-score">{complete ? 'Tune mastered!' : `Sequence ${sequence.length} of 6`}</strong>{complete ? <button className="stage-action" type="button" onClick={reset}>Play a new tune</button> : <button className="stage-action melody-replay" type="button" disabled={playing} onClick={() => show()}>Hear sequence</button>}</div>;
 }
 
-export function ReflexStage() {
+export function ReflexStage({ onReward }: { onReward: (message: string) => void }) {
   const [phase, setPhase] = useState<'idle' | 'wait' | 'go' | 'result'>('idle');
   const [started, setStarted] = useState(0);
   const [result, setResult] = useState('');
@@ -124,7 +138,7 @@ export function ReflexStage() {
   const timer = useRef<number | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   const start = () => { if (timer.current) clearTimeout(timer.current); setPhase('wait'); setResult('Wait for the lantern…'); timer.current = window.setTimeout(() => { setStarted(performance.now()); setPhase('go'); setResult('NOW!'); }, 1200 + Math.random() * 1800); };
-  const tap = () => { const now = performance.now(); const next = reflexTap(phase, started, now); if (phase === 'wait' && timer.current) clearTimeout(timer.current); if (phase === 'go') recordBest(Math.round(now - started)); setResult(next.message); setPhase(next.phase); };
+  const tap = () => { const now = performance.now(); const next = reflexTap(phase, started, now); if (phase === 'wait' && timer.current) clearTimeout(timer.current); if (phase === 'go') { const score = Math.round(now - started); if (best === null || score < best) onReward('New reflex best! +15 coins · +10 XP.'); recordBest(score); } setResult(next.message); setPhase(next.phase); };
   return <div className="reflex-stage game-stage"><div className="game-title-row"><div><h2>Reflex</h2><p>{result || 'Ready for the signal?'}</p></div>{best !== null && <small className="personal-best">Best {best} ms</small>}</div><button className={`reflex-button ${phase}`} type="button" onClick={phase === 'idle' || phase === 'result' ? start : tap}><span>{phase === 'go' ? 'TAP!' : phase === 'wait' ? 'Wait…' : 'Start'}</span></button></div>;
 }
 
@@ -440,6 +454,20 @@ function useLowestScore(game: string) {
   });
   const record = (score: number) => {
     if (!Number.isFinite(score) || score <= 0 || (best !== null && score >= best)) return;
+    setBest(score);
+    localStorage.setItem(key, String(score));
+  };
+  return [best, record] as const;
+}
+
+function useHighestScore(game: string) {
+  const key = `cozypod_v2_best_${game}`;
+  const [best, setBest] = useState<number | null>(() => {
+    const saved = Number(localStorage.getItem(key));
+    return Number.isFinite(saved) && saved > 0 ? saved : null;
+  });
+  const record = (score: number) => {
+    if (!Number.isFinite(score) || score <= 0 || (best !== null && score <= best)) return;
     setBest(score);
     localStorage.setItem(key, String(score));
   };
