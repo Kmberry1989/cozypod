@@ -1,4 +1,4 @@
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Trophy } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { games } from '../data';
 import { isMultiplayerGame, isSharedGameComplete, isSharedGameSettled } from '../gameEngine';
@@ -36,12 +36,25 @@ const rules: Record<GameId, string> = {
   market: 'Two to four players draft one item per round for three rounds. A pair scores 4, three different score 5, and a matching trio scores 9.',
 };
 
+const recordDefinitions = [
+  { game: 'Trivia', key: 'trivia', suffix: '/5' },
+  { game: 'Melody', key: 'melody', suffix: ' notes' },
+  { game: 'Reflex', key: 'reflex', suffix: ' ms' },
+  { game: 'Firefly Pairs', key: 'pairs', suffix: ' moves' },
+  { game: 'Glow Garden', key: 'garden', suffix: ' taps' },
+  { game: 'Tea Stack', key: 'tea-stack', suffix: ' moves' },
+  { game: 'Moon Mosaic', key: 'mosaic', suffix: ' slides' },
+  { game: 'Cozy Code', key: 'cozy-code', suffix: ' guesses' },
+];
+
 export function Arcade({ players, meId, selected, party, sharedGame, onSelect, onGameAction, onNextPartyRound, onFinishParty, onReward }: ArcadeProps) {
   const [showRules, setShowRules] = useState(false);
+  const [showRecords, setShowRecords] = useState(false);
   const [filter, setFilter] = useState<'all' | 'solo' | 'group'>('all');
   const claimingReward = useRef('');
   const shelf = useRef<HTMLDivElement>(null);
   const active = games.find((game) => game.id === selected)!;
+  const me = players.find((player) => player.id === meId);
   const rewardLabel = games.find((game) => game.id === sharedGame?.gameId)?.label || 'Game';
   const rewardReady = isSharedGameComplete(sharedGame);
   const rewardClaimed = Boolean(sharedGame?.rewardClaims[meId]);
@@ -74,8 +87,9 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
   }, [onGameAction, onReward, rewardClaimed, rewardLabel, rewardReady, sharedGame]);
   return (
     <section className="arcade-screen" aria-labelledby="arcade-title">
-      <div className="screen-heading"><div><h1 id="arcade-title">Arcade</h1><p>{party.phase === 'playing' ? `Party round ${party.round + 1}` : 'Pick a game from the shelf'}</p></div><button type="button" onClick={() => setShowRules((value) => !value)}><BookOpen size={17} /> How to play</button></div>
+      <div className="screen-heading"><div><h1 id="arcade-title">Arcade</h1><p>{party.phase === 'playing' ? `Party round ${party.round + 1}` : 'Pick a game from the shelf'}</p></div><div className="heading-actions"><button type="button" aria-expanded={showRecords} onClick={() => { setShowRecords((value) => !value); setShowRules(false); }}><Trophy size={17} /> Records</button><button type="button" aria-expanded={showRules} onClick={() => { setShowRules((value) => !value); setShowRecords(false); }}><BookOpen size={17} /> How to play</button></div></div>
       {showRules && <aside className="game-rules" aria-label={`${active.label} rules`}><strong>{active.label}<small>{active.players}</small></strong><p>{rules[selected]}</p></aside>}
+      {showRecords && <aside className="arcade-records" aria-label="Your arcade records"><header><span><Trophy size={19} /><strong>Your arcade records</strong></span><small>Level {me?.level || 1} · {me?.coins || 0} coins · {me?.trophyCount || 0} trophies</small></header><div>{recordDefinitions.map((record) => { const score = Number(localStorage.getItem(`cozypod_v2_best_${record.key}`)); return <section className={score > 0 ? 'earned' : ''} key={record.key}><span>{score > 0 ? '★' : '·'}</span><small>{record.game}</small><strong>{score > 0 ? `${score}${record.suffix}` : 'Not set'}</strong></section>; })}</div></aside>}
       {party.phase !== 'playing' && <div className="arcade-tools"><div role="group" aria-label="Filter arcade games">{(['all', 'solo', 'group'] as const).map((option) => <button key={option} type="button" className={filter === option ? 'active' : ''} aria-pressed={filter === option} onClick={() => chooseFilter(option)}>{option === 'all' ? 'All games' : option === 'solo' ? 'Solo' : 'Group'}</button>)}</div><button type="button" disabled={players.length < 2 && filter === 'group'} onClick={surprise}>{players.length < 2 && filter === 'group' ? 'Invite a friend' : '✨ Surprise me'}</button></div>}
       <div className="game-shelf" aria-label="Choose a game" ref={shelf}>
         {visibleGames.map((game) => <button key={game.id} data-game-id={game.id} title={`${game.label} · ${game.players} — ${game.description}`} disabled={party.phase === 'playing' && game.id !== partyGame} className={selected === game.id ? 'active' : ''} style={{ '--token': game.color } as CSSProperties} type="button" onClick={() => onSelect(game.id)}><span>{game.icon}</span><small>{game.label}</small></button>)}

@@ -178,6 +178,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .screen-heading h1 { margin: 0; font: 800 27px/1 'Baloo 2', sans-serif; }
 .screen-heading p { margin: 2px 0 0; color: #e8c8ad; font-size: 10px; font-weight: 800; }
 .screen-heading button { border: 1px solid rgba(255, 237, 214, .25); border-radius: 10px; padding: 7px 9px; background: rgba(255, 244, 225, .1); color: #fff4e1; display: flex; gap: 5px; align-items: center; font-size: 9px; font-weight: 900; }
+.heading-actions { display: flex; gap: 5px; }
 
 /* Arcade */
 .arcade-tools { min-height: 39px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 11px; color: #fff2dc; background: #653720; border-top: 1px solid rgba(255,255,255,.08); }
@@ -193,6 +194,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .game-rules strong { font: 800 13px/1 'Baloo 2'; }
 .game-rules strong small { margin-left: 7px; padding: 2px 5px; border-radius: 6px; color: #6d5344; background: #ead1aa; font: 800 7px/1 'Nunito'; vertical-align: middle; }
 .game-rules p { margin: 3px 0 0; color: var(--muted); font-size: 9px; font-weight: 800; }
+.arcade-records { margin: 0 12px 8px; padding: 10px; border: 1px solid #d6ad78; border-radius: 14px; color: var(--ink); background: #fff1d7; box-shadow: var(--shadow-small); }.arcade-records header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }.arcade-records header span { display: flex; align-items: center; gap: 6px; color: #9b6535; }.arcade-records header strong { font: 800 14px/1 'Baloo 2'; }.arcade-records header small { color: var(--muted); font-size: 7px; font-weight: 900; }.arcade-records > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }.arcade-records section { min-width: 0; display: grid; justify-items: center; padding: 6px 3px; border-radius: 9px; color: #9a806b; background: #ead7ba; text-align: center; }.arcade-records section.earned { color: #6b4934; background: #f8dda3; }.arcade-records section > span { color: #c09a60; line-height: 1; }.arcade-records section.earned > span { color: #d4952f; }.arcade-records section small { width: 100%; overflow: hidden; font-size: 7px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }.arcade-records section strong { margin-top: 2px; font-size: 8px; }
 .party-round-bar { margin: 8px 12px 0; padding: 7px 9px; display: flex; align-items: center; justify-content: space-between; gap: 9px; border: 1px solid #d4a469; border-radius: 12px; color: #5e3927; background: #ffe9c5; box-shadow: var(--shadow-small); }
 .party-round-bar span { display: grid; }.party-round-bar strong { font: 800 11px/1 'Baloo 2'; }.party-round-bar small { margin-top: 2px; color: var(--muted); font-size: 8px; font-weight: 800; }
 .party-round-bar button { flex: none; border: 0; border-radius: 9px; padding: 7px 10px; color: white; background: #b75a3e; font-size: 9px; font-weight: 900; box-shadow: inset 0 -2px 0 rgba(66,25,14,.18); }
