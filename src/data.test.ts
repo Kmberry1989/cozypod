@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { hotTakePrompts, promptCards, seedPlayers, trivia, wordSyllables } from './data';
+import { games, hotTakePrompts, promptCards, seedPlayers, trivia, wordSyllables } from './data';
+import { isMultiplayerGame } from './gameEngine';
 
 describe('replayable content pools', () => {
   it('keeps trivia answers valid and questions unique', () => {
@@ -23,5 +24,15 @@ describe('replayable content pools', () => {
 
   it('starts fresh profiles before progression unlocks', () => {
     expect(seedPlayers[0]).toMatchObject({ level: 1, xp: 0, coins: 200, trophyCount: 0 });
+  });
+
+  it('keeps the arcade catalog unique and aligned with shared-game support', () => {
+    expect(games).toHaveLength(15);
+    expect(new Set(games.map((game) => game.id)).size).toBe(games.length);
+    expect(new Set(games.map((game) => game.label)).size).toBe(games.length);
+    expect(games.filter((game) => game.players === 'Solo')).toHaveLength(8);
+    expect(games.filter((game) => game.players !== 'Solo')).toHaveLength(7);
+    expect(games.every((game) => game.label.length > 2 && game.description.length >= 20)).toBe(true);
+    games.forEach((game) => expect(isMultiplayerGame(game.id)).toBe(game.players !== 'Solo'));
   });
 });
