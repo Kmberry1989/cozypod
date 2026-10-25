@@ -121,7 +121,7 @@ function App() {
     }
     if (connection.uid !== next.id) setPlayers((current) => [{ ...current[0], id: connection.uid }, ...current.slice(1)]);
     setVoiceReady(connection.online);
-    if (!connection.online) setToast('Local mode: realtime rooms need Firebase database access.');
+    if (!connection.online) setToast(connection.error || 'Local mode: realtime rooms need Firebase database access.');
   };
 
   const updateMe = (next: PlayerProfile) => {

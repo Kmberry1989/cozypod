@@ -61,6 +61,12 @@ class RealtimeService {
   }
 
   async connect(roomCode: string, player: PlayerProfile, onRoom: (snapshot: RoomSnapshot, selfUid: string) => void) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      this.roomCode = roomCode;
+      this.uid = player.id;
+      this.onlineRoom = false;
+      return { uid: player.id, unsubscribe: () => undefined, online: false, error: 'Offline mode: solo games are ready.' };
+    }
     try {
       const { auth, db } = this.ensureFirebase();
       if (!auth.currentUser) await signInAnonymously(auth);
