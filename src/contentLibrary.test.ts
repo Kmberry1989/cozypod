@@ -25,5 +25,8 @@ describe('project content library', () => {
     const backgrounds = byCategory('room-backgrounds');
     expect(backgrounds.find((asset) => asset.name === 'Starlight Observatory')).toBeDefined();
     expect(backgrounds.every((asset) => clubhouseUnlock(asset, veteran).unlocked)).toBe(true);
+    const customBackground = { id: 'custom', name: 'Cloud Nook', url: '/cloud.webp', category: 'room-backgrounds' as const, source: 'project' as const };
+    expect(clubhouseUnlock(customBackground, { ...starter, level: 3 }, 0, [customBackground]).unlocked).toBe(false);
+    expect(clubhouseUnlock(customBackground, { ...starter, level: 4 }, 0, [customBackground]).unlocked).toBe(true);
   });
 });

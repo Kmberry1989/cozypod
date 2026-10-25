@@ -9,3 +9,6 @@
   tomato, butter, mint, lilac, and sky accents; rainy-night warmth by default.
 - **Do not include:** characters, text, logos, UI, phone frames, color overlays,
   or baked controls.
+- **Unlocks:** new project backgrounds automatically unlock at levels 4, 8,
+  12, and so on, in alphabetical filename order. The three included reward
+  environments keep their named level or trophy requirements.

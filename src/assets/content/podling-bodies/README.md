@@ -7,3 +7,5 @@
 - **Art direction:** tactile stop-motion clay, friendly asymmetry, restrained
   fingerprints, warm upper-left light, soft lower-right form shadow.
 - **Do not include:** eyes, mouth, hats, sprouts, a floor shadow, text, UI, or background.
+- **Unlocks:** project bodies unlock at levels 3, 6, 9, and so on, in
+  alphabetical filename order. Built-in body colors remain available from the start.

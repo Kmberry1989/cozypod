@@ -51,10 +51,15 @@ export function useContentLibrary() {
   return { assets, byCategory };
 }
 
-export function clubhouseUnlock(asset: ContentAsset, player: PlayerProfile) {
+export function clubhouseUnlock(asset: ContentAsset, player: PlayerProfile, index = 0, assets: ContentAsset[] = [asset]) {
   if (asset.name === 'Mosslight Conservatory') return { unlocked: player.level >= 5, requirement: 'Reach level 5' };
   if (asset.name === 'Cocoa Snow Lodge') return { unlocked: player.trophyCount >= 5, requirement: 'Earn 5 trophies' };
   if (asset.name === 'Starlight Observatory') return { unlocked: player.level >= 15, requirement: 'Reach level 15' };
+  if (asset.source === 'project') {
+    const projectIndex = assets.slice(0, index).filter((item) => item.source === 'project').length;
+    const needed = 4 + projectIndex * 4;
+    return { unlocked: player.level >= needed, requirement: `Reach level ${needed}` };
+  }
   return { unlocked: true, requirement: 'Unlocked' };
 }
 

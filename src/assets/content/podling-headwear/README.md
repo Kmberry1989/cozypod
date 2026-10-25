@@ -9,3 +9,5 @@
 - **Art direction:** the same handmade clay and warm upper-left light as the body.
 - **Do not include:** a body, face, room, text, UI, or full-canvas shadow. Use
   `podling-hats/` for anything that must cover the forehead or face.
+- **Unlocks:** project rear accessories unlock at levels 3, 6, 9, and so on,
+  in alphabetical filename order. Built-in sprouts remain starter items.
