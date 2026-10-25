@@ -105,6 +105,7 @@ non-loading templates.
 - Firebase Anonymous Auth gives each tab a stable player identity.
 - Realtime Database transactions own shared game state and reward claims.
 - Procedural Web Audio supplies taps, success tones, weather, and lounge music.
+- A small service worker keeps the visited app shell and art available offline.
 - `import.meta.glob` provides build-time content-pack discovery.
 - Firebase emulators back multiplayer and security-rule tests.
 
