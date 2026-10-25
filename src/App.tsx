@@ -95,11 +95,13 @@ function App() {
     if (snapshot.party) {
       setParty((current) => ({ ...current, ...snapshot.party, queue: snapshot.party?.queue || (snapshot.party?.phase === 'lounge' ? [] : current.queue), scores: snapshot.party?.scores || (snapshot.party?.phase === 'lounge' ? {} : current.scores) }));
       if (snapshot.party.game) {
-        setSharedGame(normalizeSharedGame(snapshot.party.game));
-      }
+        const game = normalizeSharedGame(snapshot.party.game);
+        sharedGameRef.current = game;
+        setSharedGame(game);
+      } else { sharedGameRef.current = null; setSharedGame(null); }
       if (snapshot.party.selectedGame) setSelectedGame(snapshot.party.selectedGame);
       else if (snapshot.party.game) setSelectedGame(snapshot.party.game.gameId);
-    }
+    } else { setParty(starterParty); sharedGameRef.current = null; setSharedGame(null); }
   }, []);
 
   const enterRoom = async (name: string, code: string) => {
@@ -128,11 +130,12 @@ function App() {
   };
 
   const transactGame = useCallback(async (action: SharedGameAction): Promise<GameTransactionResult> => {
-    const actorId = players[0].id;
+    const actorId = meRef.current.id;
     const now = Date.now();
     const online = await realtime.transactGame((current) => current ? applySharedGameAction(current, action, actorId, now) : current);
     if (online) {
       const state = online.state ? normalizeSharedGame(online.state) : null;
+      sharedGameRef.current = state;
       setSharedGame(state);
       return { ...online, state };
     }
@@ -142,7 +145,7 @@ function App() {
     const changed = next !== current;
     if (changed) setSharedGame(next);
     return { state: next, changed };
-  }, [players]);
+  }, []);
 
   const ensureSharedGame = useCallback(async (gameId: GameId, roster = players) => {
     if (!isMultiplayerGame(gameId)) return;
@@ -153,7 +156,11 @@ function App() {
       return refreshSharedGameRoster(current, ids, now);
     };
     const online = await realtime.transactGame(update);
-    if (online) setSharedGame(online.state ? normalizeSharedGame(online.state) : null);
+    if (online) {
+      const next = online.state ? normalizeSharedGame(online.state) : null;
+      sharedGameRef.current = next;
+      setSharedGame(next);
+    }
     else {
       const next = update(sharedGameRef.current);
       sharedGameRef.current = next;
@@ -170,7 +177,9 @@ function App() {
     }
     const next = createSharedGame(gameId, players.map((player) => player.id), Date.now());
     const online = await realtime.transactGame(() => next);
-    setSharedGame(online?.state ? normalizeSharedGame(online.state) : next);
+    const state = online?.state ? normalizeSharedGame(online.state) : next;
+    sharedGameRef.current = state;
+    setSharedGame(state);
   }, [players]);
 
   useEffect(() => {
