@@ -38,6 +38,7 @@ const rules: Record<GameId, string> = {
 
 export function Arcade({ players, meId, selected, party, sharedGame, onSelect, onGameAction, onNextPartyRound, onFinishParty, onReward }: ArcadeProps) {
   const [showRules, setShowRules] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'solo' | 'group'>('all');
   const claimingReward = useRef('');
   const shelf = useRef<HTMLDivElement>(null);
   const active = games.find((game) => game.id === selected)!;
@@ -47,6 +48,19 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
   const partyGame = party.queue[party.round];
   const partyRoundComplete = !isMultiplayerGame(partyGame) || (sharedGame?.gameId === partyGame && isSharedGameSettled(sharedGame));
   const topPartyScore = Math.max(0, ...Object.values(party.scores));
+  const visibleGames = party.phase === 'playing' ? games : games.filter((game) => filter === 'all' || (filter === 'solo' ? game.players === 'Solo' : game.players !== 'Solo'));
+  const chooseFilter = (nextFilter: 'all' | 'solo' | 'group') => {
+    setFilter(nextFilter);
+    const pool = games.filter((game) => nextFilter === 'all' || (nextFilter === 'solo' ? game.players === 'Solo' : game.players !== 'Solo'));
+    if (!pool.some((game) => game.id === selected)) onSelect(pool[0].id);
+  };
+  const surprise = () => {
+    let pool = visibleGames;
+    if (players.length < 2) pool = pool.filter((game) => game.players === 'Solo');
+    const choices = pool.filter((game) => game.id !== selected);
+    const next = choices[Math.floor(Math.random() * choices.length)] || pool[0];
+    if (next) onSelect(next.id);
+  };
   useEffect(() => {
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     shelf.current?.querySelector<HTMLElement>(`[data-game-id="${selected}"]`)?.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'nearest', inline: 'center' });
@@ -62,8 +76,9 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
     <section className="arcade-screen" aria-labelledby="arcade-title">
       <div className="screen-heading"><div><h1 id="arcade-title">Arcade</h1><p>{party.phase === 'playing' ? `Party round ${party.round + 1}` : 'Pick a game from the shelf'}</p></div><button type="button" onClick={() => setShowRules((value) => !value)}><BookOpen size={17} /> How to play</button></div>
       {showRules && <aside className="game-rules" aria-label={`${active.label} rules`}><strong>{active.label}<small>{active.players}</small></strong><p>{rules[selected]}</p></aside>}
+      {party.phase !== 'playing' && <div className="arcade-tools"><div role="group" aria-label="Filter arcade games">{(['all', 'solo', 'group'] as const).map((option) => <button key={option} type="button" className={filter === option ? 'active' : ''} aria-pressed={filter === option} onClick={() => chooseFilter(option)}>{option === 'all' ? 'All games' : option === 'solo' ? 'Solo' : 'Group'}</button>)}</div><button type="button" disabled={players.length < 2 && filter === 'group'} onClick={surprise}>{players.length < 2 && filter === 'group' ? 'Invite a friend' : '✨ Surprise me'}</button></div>}
       <div className="game-shelf" aria-label="Choose a game" ref={shelf}>
-        {games.map((game) => <button key={game.id} data-game-id={game.id} title={`${game.label} · ${game.players} — ${game.description}`} disabled={party.phase === 'playing' && game.id !== partyGame} className={selected === game.id ? 'active' : ''} style={{ '--token': game.color } as CSSProperties} type="button" onClick={() => onSelect(game.id)}><span>{game.icon}</span><small>{game.label}</small></button>)}
+        {visibleGames.map((game) => <button key={game.id} data-game-id={game.id} title={`${game.label} · ${game.players} — ${game.description}`} disabled={party.phase === 'playing' && game.id !== partyGame} className={selected === game.id ? 'active' : ''} style={{ '--token': game.color } as CSSProperties} type="button" onClick={() => onSelect(game.id)}><span>{game.icon}</span><small>{game.label}</small></button>)}
       </div>
       {party.phase === 'playing' && party.queue.length > 0 && <div className="party-round-bar"><span><strong>Party round {party.round + 1} of {party.queue.length}</strong><small>{games.find((game) => game.id === partyGame)?.label}</small></span><button type="button" disabled={!partyRoundComplete} onClick={onNextPartyRound}>{!partyRoundComplete ? 'Finish round first' : party.round + 1 >= party.queue.length ? 'Finish party' : 'Next game'}</button></div>}
       <div className="active-game" style={{ '--game-accent': active.color } as CSSProperties}>

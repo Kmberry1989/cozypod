@@ -180,6 +180,8 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .screen-heading button { border: 1px solid rgba(255, 237, 214, .25); border-radius: 10px; padding: 7px 9px; background: rgba(255, 244, 225, .1); color: #fff4e1; display: flex; gap: 5px; align-items: center; font-size: 9px; font-weight: 900; }
 
 /* Arcade */
+.arcade-tools { min-height: 39px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 11px; color: #fff2dc; background: #653720; border-top: 1px solid rgba(255,255,255,.08); }
+.arcade-tools > div { display: flex; gap: 4px; }.arcade-tools button { padding: 6px 9px; border: 1px solid rgba(255,242,220,.2); border-radius: 9px; color: #f7dfc3; background: rgba(255,255,255,.06); font-size: 8px; font-weight: 900; white-space: nowrap; }.arcade-tools > div button.active { border-color: #f5c75e; color: #59351f; background: #f5d98b; }.arcade-tools > button { color: #fff1b5; }
 .game-shelf { display: flex; gap: 7px; overflow-x: auto; padding: 8px 12px 11px; background: linear-gradient(#754029, #5b301f); border-top: 1px solid rgba(255,255,255,.08); border-bottom: 6px solid #43251a; scrollbar-width: none; }
 .game-shelf::-webkit-scrollbar { display: none; }
 .game-shelf button { flex: 0 0 57px; border: 0; color: #fff0da; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 900; }
