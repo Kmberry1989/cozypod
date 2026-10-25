@@ -79,15 +79,23 @@ class RealtimeService {
       }
       const playerRef = ref(db, `v2/rooms/${roomCode}/players/${this.uid}`);
       await set(playerRef, normalized);
-      const roster = Object.values((await get(ref(db, `v2/rooms/${roomCode}/players`))).val() || {}) as PlayerProfile[];
+      const roomRef = ref(db, `v2/rooms/${roomCode}`);
+      const room = ((await get(roomRef)).val() || {}) as RoomSnapshot;
+      const roster = Object.values(room.players || {});
       const seated = roster.sort((left, right) => (left.joinedAt || 0) - (right.joinedAt || 0) || left.id.localeCompare(right.id)).slice(0, 4);
       if (!seated.some((item) => item.id === this.uid)) {
         await remove(playerRef);
         throw new Error('That Pod is full. Try another room code.');
       }
+      if (roster.length === 1 && roomLastActivity(room) < Date.now() - 6 * 60 * 60 * 1000) {
+        const staleNodes: Promise<void>[] = [];
+        if (room.messages) staleNodes.push(remove(ref(db, `v2/rooms/${roomCode}/messages`)));
+        if (room.party) staleNodes.push(remove(ref(db, `v2/rooms/${roomCode}/party`)));
+        await Promise.all(staleNodes);
+      }
       await onDisconnect(playerRef).remove();
       this.onlineRoom = true;
-      const unsubscribe = onValue(ref(db, `v2/rooms/${roomCode}`), (snapshot) => onRoom((snapshot.val() || {}) as RoomSnapshot, this.uid));
+      const unsubscribe = onValue(roomRef, (snapshot) => onRoom((snapshot.val() || {}) as RoomSnapshot, this.uid));
       return { uid: this.uid, unsubscribe, online: true };
     } catch (error) {
       this.onlineRoom = false;
@@ -103,12 +111,15 @@ class RealtimeService {
 
   async sendMessage(message: ChatMessage) {
     if (!this.db || !this.roomCode) return;
+    const messagesRef = ref(this.db, `v2/rooms/${this.roomCode}/messages`);
     await set(ref(this.db, `v2/rooms/${this.roomCode}/messages/${message.id}`), message).catch(() => undefined);
+    const messages = Object.values(((await get(messagesRef).catch(() => null))?.val() || {}) as Record<string, ChatMessage>).sort((left, right) => right.createdAt - left.createdAt);
+    await Promise.all(messages.slice(60).map((item) => remove(ref(this.db!, `v2/rooms/${this.roomCode}/messages/${item.id}`)).catch(() => undefined)));
   }
 
   async updateParty(party: PartyState) {
     if (!this.db || !this.roomCode) return;
-    const metadata = { phase: party.phase, queue: party.queue, round: party.round, scores: party.scores, selectedGame: party.selectedGame || null };
+    const metadata = { phase: party.phase, queue: party.queue, round: party.round, scores: party.scores, selectedGame: party.selectedGame || null, updatedAt: Date.now() };
     await update(ref(this.db, `v2/rooms/${this.roomCode}/party`), metadata).catch(() => undefined);
   }
 
@@ -172,3 +183,8 @@ class RealtimeService {
 }
 
 export const realtime = new RealtimeService();
+
+export function roomLastActivity(room: RoomSnapshot) {
+  const messageTimes = Object.values(room.messages || {}).map((message) => message.createdAt || 0);
+  return Math.max(room.party?.updatedAt || room.party?.game?.updatedAt || 0, ...messageTimes, 0);
+}

@@ -53,6 +53,7 @@ export interface PartyState {
   queue: GameId[];
   round: number;
   scores: Record<string, number>;
+  updatedAt?: number;
   selectedGame?: GameId;
   game?: SharedGameState;
 }
