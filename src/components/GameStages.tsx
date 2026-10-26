@@ -9,6 +9,7 @@ import marketItems from '../assets/content/game-art/cozy-market-items.webp';
 
 type GameActionHandler = (action: SharedGameAction) => Promise<{ state: SharedGameState | null; changed: boolean }>;
 interface SharedStageProps<T> { players: PlayerProfile[]; meId: string; game: T | null; onAction: GameActionHandler; }
+interface SoloStageProps { onReward: (message: string) => void; onComplete: () => void; }
 
 export function Drop4Stage({ players, meId, game, onAction }: SharedStageProps<Drop4GameState>) {
   if (!game || game.phase === 'waiting') return <WaitingForFriends title="Drop 4" />;
@@ -30,7 +31,7 @@ export function Drop4Stage({ players, meId, game, onAction }: SharedStageProps<D
   );
 }
 
-export function TriviaStage({ onReward }: { onReward: (message: string) => void }) {
+export function TriviaStage({ onReward, onComplete }: SoloStageProps) {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [roundQuestion, setRoundQuestion] = useState(0);
@@ -40,7 +41,7 @@ export function TriviaStage({ onReward }: { onReward: (message: string) => void 
   const current = trivia[questionIndex];
   const answer = (index: number) => { setPicked(index); if (index === current.correct) setScore((value) => value + 1); };
   const next = () => {
-    if (roundQuestion === 4) { setComplete(true); recordBest(score); onReward('Trivia round complete! +40 coins · +30 XP.'); return; }
+    if (roundQuestion === 4) { setComplete(true); recordBest(score); onComplete(); onReward('Trivia round complete! +40 coins · +30 XP.'); return; }
     setPicked(null); setRoundQuestion((value) => value + 1); setQuestionIndex((value) => nextTriviaQuestion(value, trivia.length));
   };
   const reset = () => { setQuestionIndex((value) => nextTriviaQuestion(value, trivia.length)); setPicked(null); setRoundQuestion(0); setScore(0); setComplete(false); };
@@ -98,7 +99,7 @@ export function WordBombStage({ players, meId, game, onAction }: SharedStageProp
 }
 
 const melodyColors = ['tomato', 'butter', 'mint', 'lilac'];
-export function MelodyStage({ onReward }: { onReward: (message: string) => void }) {
+export function MelodyStage({ onReward, onComplete }: SoloStageProps) {
   const [sequence, setSequence] = useState<number[]>([0]);
   const [input, setInput] = useState<number[]>([]);
   const [status, setStatus] = useState('Listen, then repeat the tune.');
@@ -122,7 +123,7 @@ export function MelodyStage({ onReward }: { onReward: (message: string) => void 
     setLit(value); timers.current.push(window.setTimeout(() => setLit(null), 180));
     const result = melodyTap(sequence, input, value);
     if (result.outcome === 'wrong') { recordBest(sequence.length - 1); setSequence(result.sequence); setInput(result.input); setStatus('Almost! Back to the first note.'); timers.current.push(window.setTimeout(() => show([0]), 500)); return; }
-    if (result.outcome === 'complete' && sequence.length >= 6) { setInput([]); setComplete(true); recordBest(sequence.length); setStatus('A six-note masterpiece!'); onReward('Melody mastered! +40 coins · +30 XP.'); return; }
+    if (result.outcome === 'complete' && sequence.length >= 6) { setInput([]); setComplete(true); recordBest(sequence.length); setStatus('A six-note masterpiece!'); onComplete(); onReward('Melody mastered! +40 coins · +30 XP.'); return; }
     setSequence(result.sequence); setInput(result.input);
     if (result.outcome === 'complete') { setStatus(`Beautiful! Sequence ${result.sequence.length}.`); timers.current.push(window.setTimeout(() => show(result.sequence), 650)); }
   };
@@ -130,7 +131,7 @@ export function MelodyStage({ onReward }: { onReward: (message: string) => void 
   return <div className="melody-stage game-stage"><div className="game-title-row"><div><h2>Melody</h2><p>{status}</p></div>{best !== null && <small className="personal-best">Best {best} notes</small>}</div><div className="melody-pads">{melodyColors.map((color, index) => <button disabled={playing || complete} className={`${color} ${lit === index ? 'lit' : ''}`} key={color} type="button" onClick={() => tap(index)} aria-label={`Melody note ${index + 1}`}><span>♪</span></button>)}</div><strong className="sequence-score">{complete ? 'Tune mastered!' : `Sequence ${sequence.length} of 6`}</strong>{complete ? <button className="stage-action" type="button" onClick={reset}>Play a new tune</button> : <button className="stage-action melody-replay" type="button" disabled={playing} onClick={() => show()}>Hear sequence</button>}</div>;
 }
 
-export function ReflexStage({ onReward }: { onReward: (message: string) => void }) {
+export function ReflexStage({ onReward, onComplete }: SoloStageProps) {
   const [phase, setPhase] = useState<'idle' | 'wait' | 'go' | 'result'>('idle');
   const [started, setStarted] = useState(0);
   const [result, setResult] = useState('');
@@ -138,7 +139,7 @@ export function ReflexStage({ onReward }: { onReward: (message: string) => void 
   const timer = useRef<number | null>(null);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   const start = () => { if (timer.current) clearTimeout(timer.current); setPhase('wait'); setResult('Wait for the lantern…'); timer.current = window.setTimeout(() => { setStarted(performance.now()); setPhase('go'); setResult('NOW!'); }, 1200 + Math.random() * 1800); };
-  const tap = () => { const now = performance.now(); const next = reflexTap(phase, started, now); if (phase === 'wait' && timer.current) clearTimeout(timer.current); if (phase === 'go') { const score = Math.round(now - started); if (best === null || score < best) onReward('New reflex best! +15 coins · +10 XP.'); recordBest(score); } setResult(next.message); setPhase(next.phase); };
+  const tap = () => { const now = performance.now(); const next = reflexTap(phase, started, now); if (phase === 'wait' && timer.current) clearTimeout(timer.current); if (phase === 'go') { const score = Math.round(now - started); onComplete(); if (best === null || score < best) onReward('New reflex best! +15 coins · +10 XP.'); recordBest(score); } setResult(next.message); setPhase(next.phase); };
   return <div className="reflex-stage game-stage"><div className="game-title-row"><div><h2>Reflex</h2><p>{result || 'Ready for the signal?'}</p></div>{best !== null && <small className="personal-best">Best {best} ms</small>}</div><button className={`reflex-button ${phase}`} type="button" onClick={phase === 'idle' || phase === 'result' ? start : tap}><span>{phase === 'go' ? 'TAP!' : phase === 'wait' ? 'Wait…' : 'Start'}</span></button></div>;
 }
 
@@ -149,7 +150,7 @@ const pairKeepsakes = [
   { icon: '🏮', label: 'Lantern' }, { icon: '⭐', label: 'Star' },
 ];
 
-export function PairsStage({ onReward }: { onReward: (message: string) => void }) {
+export function PairsStage({ onReward, onComplete }: SoloStageProps) {
   const [seed, setSeed] = useState(() => Date.now());
   const [deck, setDeck] = useState(() => createPairsDeck(seed));
   const [flipped, setFlipped] = useState<number[]>([]);
@@ -179,7 +180,7 @@ export function PairsStage({ onReward }: { onReward: (message: string) => void }
         if (nextMatched.length === deck.length) {
           setComplete(true);
           recordBest(nextMoves);
-          onReward('Firefly Pairs complete! +40 coins · +30 XP.');
+          onComplete(); onReward('Firefly Pairs complete! +40 coins · +30 XP.');
         }
       }
       setFlipped([]); setLocked(false);
@@ -198,7 +199,7 @@ export function PairsStage({ onReward }: { onReward: (message: string) => void }
   </div>;
 }
 
-export function GardenStage({ onReward }: { onReward: (message: string) => void }) {
+export function GardenStage({ onReward, onComplete }: SoloStageProps) {
   const [seed, setSeed] = useState(() => Date.now());
   const [board, setBoard] = useState(() => createGardenPuzzle(seed));
   const [moves, setMoves] = useState(0);
@@ -214,7 +215,7 @@ export function GardenStage({ onReward }: { onReward: (message: string) => void 
     const won = next.every(Boolean);
     const nextMoves = moves + 1;
     setBoard(next); setMoves(nextMoves); setComplete(won);
-    if (won) { recordBest(nextMoves); onReward('Glow Garden complete! +40 coins · +30 XP.'); }
+    if (won) { recordBest(nextMoves); onComplete(); onReward('Glow Garden complete! +40 coins · +30 XP.'); }
   };
   const awake = board.filter(Boolean).length;
   return <div className="garden-stage game-stage">
@@ -226,7 +227,7 @@ export function GardenStage({ onReward }: { onReward: (message: string) => void 
   </div>;
 }
 
-export function TeaStackStage({ onReward }: { onReward: (message: string) => void }) {
+export function TeaStackStage({ onReward, onComplete }: SoloStageProps) {
   const [pegs, setPegs] = useState<number[][]>([[3, 2, 1], [], []]);
   const [selected, setSelected] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
@@ -247,7 +248,7 @@ export function TeaStackStage({ onReward }: { onReward: (message: string) => voi
     const nextMoves = moves + 1;
     const won = next[2].length === 3;
     setPegs(next); setMoves(nextMoves);
-    if (won) { setMessage(`Perfect pour in ${nextMoves} moves!`); recordBest(nextMoves); onReward('Tea Stack complete! +40 coins · +30 XP.'); }
+    if (won) { setMessage(`Perfect pour in ${nextMoves} moves!`); recordBest(nextMoves); onComplete(); onReward('Tea Stack complete! +40 coins · +30 XP.'); }
     else setMessage('Lovely. Choose the next top cup.');
   };
   return <div className="tea-stage game-stage">
@@ -261,7 +262,7 @@ export function TeaStackStage({ onReward }: { onReward: (message: string) => voi
 
 const mosaicTiles = ['🌙', '⭐', '☁', '✨', '🏮', '🍄', '🌿', '☕'];
 
-export function MosaicStage({ onReward }: { onReward: (message: string) => void }) {
+export function MosaicStage({ onReward, onComplete }: SoloStageProps) {
   const [seed, setSeed] = useState(() => Date.now());
   const [board, setBoard] = useState(() => createMosaicPuzzle(seed));
   const [moves, setMoves] = useState(0);
@@ -278,7 +279,7 @@ export function MosaicStage({ onReward }: { onReward: (message: string) => void 
     const nextMoves = moves + 1;
     const won = isMosaicComplete(next);
     setBoard(next); setMoves(nextMoves); setComplete(won);
-    if (won) { recordBest(nextMoves); onReward('Moon Mosaic complete! +40 coins · +30 XP.'); }
+    if (won) { recordBest(nextMoves); onComplete(); onReward('Moon Mosaic complete! +40 coins · +30 XP.'); }
   };
   const movable = new Set(mosaicMovableTiles(board));
   return <div className="mosaic-stage game-stage">
@@ -295,7 +296,7 @@ export function MosaicStage({ onReward }: { onReward: (message: string) => void 
 const codeCharms = ['🌙', '⭐', '🍄', '🌿', '☕', '🏮'];
 interface CodeGuess { charms: number[]; exact: number; nearby: number; }
 
-export function CozyCodeStage({ onReward }: { onReward: (message: string) => void }) {
+export function CozyCodeStage({ onReward, onComplete }: SoloStageProps) {
   const [seed, setSeed] = useState(() => Date.now());
   const [secret, setSecret] = useState(() => createCozyCode(seed));
   const [current, setCurrent] = useState<number[]>([]);
@@ -319,8 +320,8 @@ export function CozyCodeStage({ onReward }: { onReward: (message: string) => voi
     const nextGuesses = [...guesses, { charms: current, ...score }];
     setGuesses(nextGuesses); setCurrent([]);
     if (score.exact === 4) {
-      recordBest(nextGuesses.length); setMessage(`Code cracked in ${nextGuesses.length} ${nextGuesses.length === 1 ? 'guess' : 'guesses'}!`); onReward('Cozy Code cracked! +40 coins · +30 XP.');
-    } else if (nextGuesses.length === 7) setMessage('The lock clicked shut. The code is revealed below.');
+      recordBest(nextGuesses.length); setMessage(`Code cracked in ${nextGuesses.length} ${nextGuesses.length === 1 ? 'guess' : 'guesses'}!`); onComplete(); onReward('Cozy Code cracked! +40 coins · +30 XP.');
+    } else if (nextGuesses.length === 7) { setMessage('The lock clicked shut. The code is revealed below.'); onComplete(); }
     else setMessage(`${score.exact} exact · ${score.nearby} nearby. Try again.`);
   };
   return <div className="code-stage game-stage">

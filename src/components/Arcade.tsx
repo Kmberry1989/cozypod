@@ -1,7 +1,8 @@
-import { BookOpen, Trophy } from 'lucide-react';
+import { BookOpen, Gift, Target, Trophy } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { games } from '../data';
 import { isMultiplayerGame, isSharedGameComplete, isSharedGameSettled } from '../gameEngine';
+import { achievements, dailyGoalFor, emptyDailyProgress, localDateKey, normalizeDailyProgress, recordSoloCompletion, type DailyProgress, type SoloGameId } from '../progression';
 import type { GameId, PartyState, PlayerProfile, SharedGameAction, SharedGameState } from '../types';
 import { BridgeStage, CozyCodeStage, Drop4Stage, GardenStage, HotTakesStage, LanternStage, MarketStage, MelodyStage, MosaicStage, PairsStage, ReflexStage, ReversiStage, TeaStackStage, TriviaStage, WordBombStage } from './GameStages';
 
@@ -47,10 +48,29 @@ const recordDefinitions = [
   { game: 'Cozy Code', key: 'cozy-code', suffix: ' guesses' },
 ];
 
+const dailyStorageKey = 'cozypod_v2_daily_progress';
+const achievementStorageKey = 'cozypod_v2_claimed_achievements';
+
+function loadDailyProgress(date: string): DailyProgress {
+  try { return normalizeDailyProgress(JSON.parse(localStorage.getItem(dailyStorageKey) || 'null'), date); }
+  catch { return emptyDailyProgress(date); }
+}
+
+function loadAchievementClaims() {
+  try {
+    const value = JSON.parse(localStorage.getItem(achievementStorageKey) || '[]');
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+  } catch { return []; }
+}
+
 export function Arcade({ players, meId, selected, party, sharedGame, onSelect, onGameAction, onNextPartyRound, onFinishParty, onReward }: ArcadeProps) {
   const [showRules, setShowRules] = useState(false);
   const [showRecords, setShowRecords] = useState(false);
+  const [showGoals, setShowGoals] = useState(false);
   const [filter, setFilter] = useState<'all' | 'solo' | 'group'>('all');
+  const today = localDateKey();
+  const [daily, setDaily] = useState(() => loadDailyProgress(today));
+  const [claimedAchievements, setClaimedAchievements] = useState(loadAchievementClaims);
   const claimingReward = useRef('');
   const shelf = useRef<HTMLDivElement>(null);
   const active = games.find((game) => game.id === selected)!;
@@ -62,6 +82,36 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
   const partyRoundComplete = !isMultiplayerGame(partyGame) || (sharedGame?.gameId === partyGame && isSharedGameSettled(sharedGame));
   const topPartyScore = Math.max(0, ...Object.values(party.scores));
   const visibleGames = party.phase === 'playing' ? games : games.filter((game) => filter === 'all' || (filter === 'solo' ? game.players === 'Solo' : game.players !== 'Solo'));
+  const recordCount = recordDefinitions.filter((record) => Number(localStorage.getItem(`cozypod_v2_best_${record.key}`)) > 0).length;
+  const dailyGoal = dailyGoalFor(today);
+  const dailyProgress = Math.min(dailyGoal.target, dailyGoal.progress(daily));
+  const dailyReady = dailyProgress >= dailyGoal.target && !daily.claimed;
+  const achievementReady = achievements.some((achievement) => Boolean(me && achievement.unlocked(me, recordCount) && !claimedAchievements.includes(achievement.id)));
+  const closeOtherPanels = (panel: 'goals' | 'records' | 'rules') => {
+    setShowGoals(panel === 'goals' ? (value) => !value : false);
+    setShowRecords(panel === 'records' ? (value) => !value : false);
+    setShowRules(panel === 'rules' ? (value) => !value : false);
+  };
+  const completeSoloRound = (gameId: SoloGameId) => {
+    setDaily((current) => {
+      const next = recordSoloCompletion(current, gameId, today);
+      localStorage.setItem(dailyStorageKey, JSON.stringify(next));
+      return next;
+    });
+  };
+  const claimDaily = () => {
+    if (!dailyReady) return;
+    const next = { ...daily, claimed: true };
+    setDaily(next); localStorage.setItem(dailyStorageKey, JSON.stringify(next));
+    onReward(`${dailyGoal.title} complete! +${dailyGoal.rewardCoins} coins · +${dailyGoal.rewardXp} XP.`);
+  };
+  const claimAchievement = (id: string) => {
+    const achievement = achievements.find((item) => item.id === id);
+    if (!achievement || claimedAchievements.includes(id) || !me || !achievement.unlocked(me, recordCount)) return;
+    const next = [...claimedAchievements, id];
+    setClaimedAchievements(next); localStorage.setItem(achievementStorageKey, JSON.stringify(next));
+    onReward(`${achievement.title} unlocked! +${achievement.rewardCoins} coins · +${achievement.rewardXp} XP.`);
+  };
   const chooseFilter = (nextFilter: 'all' | 'solo' | 'group') => {
     setFilter(nextFilter);
     const pool = games.filter((game) => nextFilter === 'all' || (nextFilter === 'solo' ? game.players === 'Solo' : game.players !== 'Solo'));
@@ -87,7 +137,16 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
   }, [onGameAction, onReward, rewardClaimed, rewardLabel, rewardReady, sharedGame]);
   return (
     <section className="arcade-screen" aria-labelledby="arcade-title">
-      <div className="screen-heading"><div><h1 id="arcade-title">Arcade</h1><p>{party.phase === 'playing' ? `Party round ${party.round + 1}` : 'Pick a game from the shelf'}</p></div><div className="heading-actions"><button type="button" aria-expanded={showRecords} onClick={() => { setShowRecords((value) => !value); setShowRules(false); }}><Trophy size={17} /> Records</button><button type="button" aria-expanded={showRules} onClick={() => { setShowRules((value) => !value); setShowRecords(false); }}><BookOpen size={17} /> How to play</button></div></div>
+      <div className="screen-heading"><div><h1 id="arcade-title">Arcade</h1><p>{party.phase === 'playing' ? `Party round ${party.round + 1}` : 'Pick a game from the shelf'}</p></div><div className="heading-actions"><button className={dailyReady || achievementReady ? 'has-reward' : ''} type="button" aria-expanded={showGoals} onClick={() => closeOtherPanels('goals')}><Target size={17} /> Goals</button><button type="button" aria-expanded={showRecords} onClick={() => closeOtherPanels('records')}><Trophy size={17} /> Records</button><button type="button" aria-label="How to play" aria-expanded={showRules} onClick={() => closeOtherPanels('rules')}><BookOpen size={17} /> Rules</button></div></div>
+      {showGoals && <aside className="arcade-goals" aria-label="Goals and achievements">
+        <header><span><Target size={19} /><strong>Today’s cozy goal</strong></span><small>Resets each day</small></header>
+        <section className={`daily-goal ${daily.claimed ? 'claimed' : dailyReady ? 'ready' : ''}`}>
+          <div><strong>{dailyGoal.title}</strong><p>{dailyGoal.description}</p><span><i style={{ width: `${Math.min(100, (dailyProgress / dailyGoal.target) * 100)}%` }} /></span><small>{dailyProgress} / {dailyGoal.target}</small></div>
+          <button type="button" disabled={!dailyReady} onClick={claimDaily}>{daily.claimed ? '✓ Claimed' : dailyReady ? <><Gift size={14} /> Claim</> : `+${dailyGoal.rewardCoins}`}</button>
+        </section>
+        <h3>Achievements</h3>
+        <div className="achievement-list">{achievements.map((achievement) => { const claimed = claimedAchievements.includes(achievement.id); const unlocked = Boolean(me && achievement.unlocked(me, recordCount)); return <section className={claimed ? 'claimed' : unlocked ? 'ready' : ''} key={achievement.id}><span>{achievement.icon}</span><div><strong>{achievement.title}</strong><small>{achievement.description}</small></div><button type="button" disabled={!unlocked || claimed} onClick={() => claimAchievement(achievement.id)}>{claimed ? '✓' : unlocked ? 'Claim' : `+${achievement.rewardCoins}`}</button></section>; })}</div>
+      </aside>}
       {showRules && <aside className="game-rules" aria-label={`${active.label} rules`}><strong>{active.label}<small>{active.players}</small></strong><p>{rules[selected]}</p></aside>}
       {showRecords && <aside className="arcade-records" aria-label="Your arcade records"><header><span><Trophy size={19} /><strong>Your arcade records</strong></span><small>Level {me?.level || 1} · {me?.coins || 0} coins · {me?.trophyCount || 0} trophies</small></header><div>{recordDefinitions.map((record) => { const score = Number(localStorage.getItem(`cozypod_v2_best_${record.key}`)); return <section className={score > 0 ? 'earned' : ''} key={record.key}><span>{score > 0 ? '★' : '·'}</span><small>{record.game}</small><strong>{score > 0 ? `${score}${record.suffix}` : 'Not set'}</strong></section>; })}</div></aside>}
       {party.phase !== 'playing' && <div className="arcade-tools"><div role="group" aria-label="Filter arcade games">{(['all', 'solo', 'group'] as const).map((option) => <button key={option} type="button" className={filter === option ? 'active' : ''} aria-pressed={filter === option} onClick={() => chooseFilter(option)}>{option === 'all' ? 'All games' : option === 'solo' ? 'Solo' : 'Group'}</button>)}</div><button type="button" disabled={players.length < 2 && filter === 'group'} onClick={surprise}>{players.length < 2 && filter === 'group' ? 'Invite a friend' : '✨ Surprise me'}</button></div>}
@@ -100,14 +159,14 @@ export function Arcade({ players, meId, selected, party, sharedGame, onSelect, o
         {party.phase !== 'recap' && <>
         {selected === 'drop4' && <Drop4Stage players={players} meId={meId} game={sharedGame?.gameId === 'drop4' ? sharedGame : null} onAction={onGameAction} />}
         {selected === 'wordbomb' && <WordBombStage players={players} meId={meId} game={sharedGame?.gameId === 'wordbomb' ? sharedGame : null} onAction={onGameAction} />}
-        {selected === 'trivia' && <TriviaStage onReward={onReward} />}
-        {selected === 'melody' && <MelodyStage onReward={onReward} />}
-        {selected === 'reflex' && <ReflexStage onReward={onReward} />}
-        {selected === 'pairs' && <PairsStage onReward={onReward} />}
-        {selected === 'garden' && <GardenStage onReward={onReward} />}
-        {selected === 'teastack' && <TeaStackStage onReward={onReward} />}
-        {selected === 'mosaic' && <MosaicStage onReward={onReward} />}
-        {selected === 'cozycode' && <CozyCodeStage onReward={onReward} />}
+        {selected === 'trivia' && <TriviaStage onReward={onReward} onComplete={() => completeSoloRound('trivia')} />}
+        {selected === 'melody' && <MelodyStage onReward={onReward} onComplete={() => completeSoloRound('melody')} />}
+        {selected === 'reflex' && <ReflexStage onReward={onReward} onComplete={() => completeSoloRound('reflex')} />}
+        {selected === 'pairs' && <PairsStage onReward={onReward} onComplete={() => completeSoloRound('pairs')} />}
+        {selected === 'garden' && <GardenStage onReward={onReward} onComplete={() => completeSoloRound('garden')} />}
+        {selected === 'teastack' && <TeaStackStage onReward={onReward} onComplete={() => completeSoloRound('teastack')} />}
+        {selected === 'mosaic' && <MosaicStage onReward={onReward} onComplete={() => completeSoloRound('mosaic')} />}
+        {selected === 'cozycode' && <CozyCodeStage onReward={onReward} onComplete={() => completeSoloRound('cozycode')} />}
         {selected === 'hottakes' && <HotTakesStage players={players} meId={meId} game={sharedGame?.gameId === 'hottakes' ? sharedGame : null} onAction={onGameAction} />}
         {selected === 'lanterns' && <LanternStage players={players} meId={meId} game={sharedGame?.gameId === 'lanterns' ? sharedGame : null} onAction={onGameAction} />}
         {selected === 'reversi' && <ReversiStage players={players} meId={meId} game={sharedGame?.gameId === 'reversi' ? sharedGame : null} onAction={onGameAction} />}
