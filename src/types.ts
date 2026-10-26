@@ -1,4 +1,5 @@
 export type View = 'lounge' | 'arcade' | 'wardrobe';
+export type ConnectionStatus = 'online' | 'offline' | 'connecting';
 export type GameId = 'drop4' | 'wordbomb' | 'trivia' | 'melody' | 'reflex' | 'pairs' | 'garden' | 'teastack' | 'mosaic' | 'cozycode' | 'hottakes' | 'lanterns' | 'reversi' | 'bridges' | 'market';
 export type MultiplayerGameId = 'drop4' | 'wordbomb' | 'hottakes' | 'lanterns' | 'reversi' | 'bridges' | 'market';
 export type BodyColor = string;

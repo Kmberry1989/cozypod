@@ -111,12 +111,12 @@ class RealtimeService {
   }
 
   async updatePlayer(player: PlayerProfile) {
-    if (!this.db || !this.roomCode || !this.uid) return;
+    if (!this.db || !this.roomCode || !this.uid || !this.onlineRoom) return;
     await set(ref(this.db, `v2/rooms/${this.roomCode}/players/${this.uid}`), { ...player, id: this.uid, online: true }).catch(() => undefined);
   }
 
   async sendMessage(message: ChatMessage) {
-    if (!this.db || !this.roomCode) return;
+    if (!this.db || !this.roomCode || !this.onlineRoom) return;
     const messagesRef = ref(this.db, `v2/rooms/${this.roomCode}/messages`);
     await set(ref(this.db, `v2/rooms/${this.roomCode}/messages/${message.id}`), message).catch(() => undefined);
     const messages = Object.values(((await get(messagesRef).catch(() => null))?.val() || {}) as Record<string, ChatMessage>).sort((left, right) => right.createdAt - left.createdAt);
@@ -124,7 +124,7 @@ class RealtimeService {
   }
 
   async updateParty(party: PartyState) {
-    if (!this.db || !this.roomCode) return;
+    if (!this.db || !this.roomCode || !this.onlineRoom) return;
     const metadata = { phase: party.phase, queue: party.queue, round: party.round, scores: party.scores, selectedGame: party.selectedGame || null, updatedAt: Date.now() };
     await update(ref(this.db, `v2/rooms/${this.roomCode}/party`), metadata).catch(() => undefined);
   }
@@ -173,7 +173,7 @@ class RealtimeService {
   }
 
   async clearVoiceSignals() {
-    if (!this.db || !this.roomCode || !this.uid) return;
+    if (!this.db || !this.roomCode || !this.uid || !this.onlineRoom) return;
     await remove(ref(this.db, `v2/voiceSignals/${this.roomCode}/${this.uid}`)).catch(() => undefined);
   }
 
@@ -184,6 +184,10 @@ class RealtimeService {
 
   async leave() {
     if (this.db && this.roomCode && this.uid) await remove(ref(this.db, `v2/rooms/${this.roomCode}/players/${this.uid}`)).catch(() => undefined);
+    this.onlineRoom = false;
+  }
+
+  markOffline() {
     this.onlineRoom = false;
   }
 }

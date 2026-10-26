@@ -88,6 +88,12 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 .profile-brief strong { font-size: 14px; }
 .profile-brief span { color: #e8cbb0; font-size: 10px; font-weight: 800; }
 .topbar-right { display: flex; align-items: center; gap: 8px; }
+.connection-status { min-width: 59px; border: 1px solid rgba(255, 241, 218, .2); border-radius: 9px; padding: 5px 7px; color: #e8d5bf; background: rgba(255,255,255,.07); display: inline-flex; align-items: center; justify-content: center; gap: 4px; font-size: 8px; font-weight: 900; line-height: 1; }
+.connection-status.online { color: #d9f0c7; }
+.connection-status.offline { border-color: #f0c064; color: #4a291d; background: #f3cc75; box-shadow: 0 0 0 2px rgba(243, 204, 117, .12); }
+.connection-status.connecting { color: #f7e5c7; }
+.connection-status:disabled { cursor: default; opacity: 1; }
+.connection-status .spin { animation: spin .8s linear infinite; }
 .coin-count { display: flex; align-items: center; gap: 5px; font-weight: 900; font-size: 13px; }
 .coin-count span { color: #f7c94a; font-size: 20px; text-shadow: 0 2px 0 #a45c1c; }
 .room-code { border: 0; background: #fff0d8; color: var(--ink); border-radius: 12px; padding: 5px 10px; line-height: 1; box-shadow: inset 0 -2px 0 rgba(101, 58, 35, .14); }
@@ -501,6 +507,7 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 @keyframes shake { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
 @keyframes toast-in { from { transform: translate(-50%, 15px); opacity: 0; } }
 @keyframes reward-glow { to { box-shadow: 0 0 12px rgba(255, 223, 119, .68); } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 @media (min-width: 700px) {
   body { background: radial-gradient(circle at 50% 0, #8d573a, #2d170f 70%); }
@@ -532,6 +539,9 @@ button:disabled { cursor: not-allowed; opacity: .48; }
 }
 
 @media (max-width: 520px) {
+  .topbar-right { gap: 6px; }
+  .connection-status { min-width: 29px; padding-inline: 6px; }
+  .connection-status span { display: none; }
   .screen-heading { padding-inline: 10px; }
   .screen-heading button { padding-inline: 7px; }
   .achievement-list { grid-template-columns: repeat(2, 1fr); }

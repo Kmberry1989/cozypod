@@ -9,7 +9,7 @@ import { realtime, type GameTransactionResult, type RoomSnapshot } from './servi
 import { voice } from './services/voice';
 import { seedPlayers } from './data';
 import { applyProfileReward, applySharedGameAction, createSharedGame, isMultiplayerGame, mergeProfileProgress, normalizeSharedGame, partyRoundWinnerIds, refreshSharedGameRoster } from './gameEngine';
-import type { ChatMessage, GameId, PartyState, PlayerProfile, SharedGameAction, SharedGameState, View } from './types';
+import type { ChatMessage, ConnectionStatus, GameId, PartyState, PlayerProfile, SharedGameAction, SharedGameState, View } from './types';
 import { cozyAudio } from './services/audio';
 import { googleAuthErrorMessage } from './authErrors';
 
@@ -36,6 +36,7 @@ function App() {
   const [voiceOn, setVoiceOn] = useState(false);
   const [voiceReady, setVoiceReady] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [toast, setToast] = useState<string | null>(null);
   const sharedGameRef = useRef<SharedGameState | null>(null);
   const roomUnsubscribeRef = useRef<() => void>(() => undefined);
@@ -109,6 +110,7 @@ function App() {
     setPlayers((current) => [next, ...current.slice(1)]);
     setRoomCode(code);
     setJoined(true);
+    setConnectionStatus('connecting');
     setVoiceReady(false);
     history.replaceState(null, '', `${location.pathname}?room=${code}`);
     roomUnsubscribeRef.current();
@@ -116,13 +118,48 @@ function App() {
     roomUnsubscribeRef.current = connection.unsubscribe;
     if (!connection.online && connection.error?.startsWith('That Pod is full')) {
       setJoined(false);
+      setConnectionStatus('offline');
       setToast(connection.error);
       return;
     }
     if (connection.uid !== next.id) setPlayers((current) => [{ ...current[0], id: connection.uid }, ...current.slice(1)]);
     setVoiceReady(connection.online);
-    if (!connection.online) setToast(connection.error || 'Local mode: realtime rooms need Firebase database access.');
+    setConnectionStatus(connection.online ? 'online' : 'offline');
+    if (!connection.online) { setView('arcade'); setToast(connection.error || 'Local mode: realtime rooms need Firebase database access.'); }
   };
+
+  const reconnectRoom = useCallback(async () => {
+    if (!joined || connectionStatus === 'connecting') return;
+    setConnectionStatus('connecting');
+    roomUnsubscribeRef.current();
+    const player = meRef.current;
+    const connection = await realtime.connect(roomCode, player, applyRoomSnapshot);
+    roomUnsubscribeRef.current = connection.unsubscribe;
+    if (connection.uid !== player.id) {
+      const updated = { ...player, id: connection.uid };
+      meRef.current = updated;
+      setPlayers((current) => [updated, ...current.slice(1)]);
+    }
+    setVoiceReady(connection.online);
+    setConnectionStatus(connection.online ? 'online' : 'offline');
+    setToast(connection.online ? 'Back online — your live Pod is connected.' : connection.error || 'Still offline. Solo games are ready.');
+  }, [applyRoomSnapshot, connectionStatus, joined, roomCode]);
+
+  useEffect(() => {
+    const handleOffline = () => {
+      if (!joined) return;
+      realtime.markOffline();
+      roomUnsubscribeRef.current();
+      setConnectionStatus('offline');
+      setVoiceReady(false);
+      if (voiceOn) { void voice.disconnect(); setVoiceOn(false); }
+      setToast('Connection lost. Solo games still work offline.');
+    };
+    const handleOnline = () => { if (joined) void reconnectRoom(); };
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+    return () => { window.removeEventListener('offline', handleOffline); window.removeEventListener('online', handleOnline); };
+  }, [joined, reconnectRoom, voiceOn]);
 
   const updateMe = (next: PlayerProfile) => {
     setPlayers((current) => [next, ...current.slice(1)]);
@@ -284,7 +321,7 @@ function App() {
   else appContent = <Wardrobe player={me} onChange={updateMe} />;
 
   if (!joined) return <><JoinScreen player={me} initialRoom={roomCode} onEnter={enterRoom} onGoogle={googleSignIn} />{toast && <Toast text={toast} onClose={() => setToast(null)} />}</>;
-  return <><AppShell view={view} player={me} roomCode={roomCode} onView={setView}>{appContent}</AppShell>{toast && <Toast text={toast} onClose={() => setToast(null)} />}</>;
+  return <><AppShell view={view} player={me} roomCode={roomCode} connectionStatus={connectionStatus} onView={setView} onReconnect={() => void reconnectRoom()}>{appContent}</AppShell>{toast && <Toast text={toast} onClose={() => setToast(null)} />}</>;
 }
 
 function Toast({ text, onClose }: { text: string; onClose: () => void }) {

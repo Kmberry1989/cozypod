@@ -1,8 +1,25 @@
-const CACHE = 'cozypod-shell-v1';
+const CACHE = 'cozypod-shell-v2';
 const SHELL = './';
+const CORE_ASSETS = [
+  './',
+  './manifest.webmanifest',
+  './art/v2/cozypod-wordmark.webp',
+  './art/v2/lounge-rainy.webp',
+  './art/v2/lantern-keepers.webp',
+  './art/podling/body-teal.png',
+  './art/podling/body-lime.png',
+  './art/podling/body-mint.png',
+  './art/podling/body-lilac.png',
+  './art/podling/face-happy.png',
+  './art/podling/face-sleepy.png',
+  './art/podling/face-starry.png',
+  './art/podling/sprout-leaf.png',
+  './art/podling/sprout-flower.png',
+  './art/podling/sprout-mushroom.png',
+];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.add(SHELL)));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(CORE_ASSETS)));
   self.skipWaiting();
 });
 
